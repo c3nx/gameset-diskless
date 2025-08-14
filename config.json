@@ -1,0 +1,168 @@
+{
+  "version": "1.0",
+  "created": "2025-01-14",
+  "description": "GameSet Oyun Konfigürasyon Dosyası",
+  "games": {
+    "battlenet": {
+      "name": "Battle.net",
+      "enabled": true,
+      "registry": "battlenet.reg",
+      "folders": [
+        {
+          "source": "%AppData%\\Battle.net",
+          "target": "E:\\JunkFiles\\Battle.net_app",
+          "description": "Battle.net kullanıcı ayarları"
+        },
+        {
+          "source": "%ProgramData%\\Battle.net",
+          "target": "E:\\JunkFiles\\Battle.net_prg",
+          "description": "Battle.net program verileri"
+        }
+      ]
+    },
+    "steam": {
+      "name": "Steam",
+      "enabled": true,
+      "registry": "steam.reg",
+      "folders": [
+        {
+          "source": "%ProgramData%\\Steam",
+          "target": "E:\\JunkFiles\\Steam_prg",
+          "description": "Steam program verileri"
+        }
+      ]
+    },
+    "epic": {
+      "name": "Epic Games",
+      "enabled": true,
+      "registry": "epic.reg",
+      "folders": [
+        {
+          "source": "%ProgramData%\\Epic",
+          "target": "E:\\JunkFiles\\Epic",
+          "description": "Epic Games launcher verileri"
+        },
+        {
+          "source": "%LocalAppData%\\UnrealEngine",
+          "target": "E:\\JunkFiles\\UnrealEngine",
+          "description": "Unreal Engine verileri"
+        }
+      ]
+    },
+    "riot": {
+      "name": "Riot Games",
+      "enabled": true,
+      "registry": "riot.reg",
+      "folders": [
+        {
+          "source": "%ProgramData%\\Riot Games",
+          "target": "E:\\JunkFiles\\Riotto",
+          "description": "Riot Games program verileri"
+        },
+        {
+          "source": "%LocalAppData%\\Riot Games",
+          "target": "E:\\JunkFiles\\Riotlocal",
+          "description": "Riot Games kullanıcı verileri"
+        }
+      ]
+    },
+    "ea": {
+      "name": "EA Desktop",
+      "enabled": true,
+      "registry": "ea.reg",
+      "folders": [
+        {
+          "source": "%ProgramData%\\EA Desktop",
+          "target": "E:\\JunkFiles\\EA_prg",
+          "description": "EA Desktop program verileri"
+        },
+        {
+          "source": "%LocalAppData%\\EADesktop",
+          "target": "E:\\JunkFiles\\EA_apploc",
+          "description": "EA Desktop kullanıcı verileri"
+        },
+        {
+          "source": "%LocalAppData%\\EALaunchHelper",
+          "target": "E:\\JunkFiles\\EA_apploc2",
+          "description": "EA Launch Helper"
+        },
+        {
+          "source": "%LocalAppData%\\Electronic Arts",
+          "target": "E:\\JunkFiles\\EA_apploc3",
+          "description": "Electronic Arts kullanıcı verileri"
+        }
+      ]
+    },
+    "ubisoft": {
+      "name": "Ubisoft Connect",
+      "enabled": true,
+      "registry": "ubisoft.reg",
+      "folders": [
+        {
+          "source": "%LocalAppData%\\Ubisoft Game Launcher",
+          "target": "E:\\JunkFiles\\Ubisoft Game Launcher",
+          "description": "Ubisoft Connect launcher"
+        }
+      ]
+    },
+    "wargaming": {
+      "name": "Wargaming Game Center",
+      "enabled": true,
+      "registry": "wargaming.reg",
+      "folders": [
+        {
+          "source": "%ProgramData%\\Wargaming.net\\GameCenter",
+          "target": "E:\\JunkFiles\\wargaming",
+          "description": "Wargaming Game Center"
+        }
+      ]
+    },
+    "discord": {
+      "name": "Discord",
+      "enabled": true,
+      "registry": "discord.reg",
+      "folders": [
+        {
+          "source": "%AppData%\\discord",
+          "target": "E:\\JunkFiles\\discordapp",
+          "description": "Discord kullanıcı ayarları"
+        },
+        {
+          "source": "%LocalAppData%\\Discord",
+          "target": "E:\\JunkFiles\\discordlcapp",
+          "description": "Discord yerel verileri"
+        }
+      ]
+    },
+    "tarkov": {
+      "name": "Escape from Tarkov",
+      "enabled": true,
+      "registry": "tarkov.reg",
+      "folders": [
+        {
+          "source": "%AppData%\\Battlestate Games",
+          "target": "E:\\JunkFiles\\tarkov",
+          "description": "Tarkov oyun verileri"
+        }
+      ]
+    },
+    "arenabreakout": {
+      "name": "Arena Breakout",
+      "enabled": true,
+      "registry": "arenabreakout.reg",
+      "folders": [
+        {
+          "source": "%LocalAppData%\\ArenaBreakoutInfiniteMiniloader",
+          "target": "E:\\JunkFiles\\ArenaBreakout",
+          "description": "Arena Breakout oyun verileri"
+        }
+      ]
+    }
+  },
+  "notes": {
+    "usage": "Bu dosya GameSet sisteminde desteklenen oyunları tanımlar",
+    "registry": "Registry dosyaları E:\\GameSet\\Registry\\ klasöründe saklanır",
+    "folders": "Oyun klasörleri E:\\JunkFiles\\ altına kopyalanır",
+    "detection": "Yeni oyunlar DetectNewGame.ps1 ile otomatik eklenir"
+  }
+}
