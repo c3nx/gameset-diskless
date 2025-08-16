@@ -1,0 +1,37 @@
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.lnk
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.bak
+*.swp
+*~
+
+# PowerShell
+*.ps1xml
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# GameSet runtime files
+.installed
+.deployed_to_server
+Logs/
+nul
+
+# Test data
+TestGameSet/
+*Set/Files/
+
+# Config backups
+*.ini.backup
+config.json.backup

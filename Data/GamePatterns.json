@@ -1,0 +1,513 @@
+{
+  "version": "1.0",
+  "description": "GameSet Pattern Database - Tum oyun ve launcher patternleri",
+  "lastUpdated": "2025-01-16",
+  
+  "common": {
+    "ignore_patterns": [
+      "*/Temp/*",
+      "*/temp/*",
+      "*/Cache/*",
+      "*/cache/*",
+      "*/Logs/*",
+      "*/logs/*",
+      "*/CrashDumps/*",
+      "*/CrashReports/*",
+      "*.log",
+      "*.tmp",
+      "*.temp",
+      "*.dmp",
+      "*.old",
+      "*.backup",
+      "*/Downloads/*",
+      "*/Windows/Installer/*"
+    ],
+    
+    "critical_patterns": [
+      "*/saves/*",
+      "*/savegames/*",
+      "*/Save/*",
+      "*/Profile/*",
+      "*/profiles/*",
+      "*/Settings/*",
+      "*/Config/*",
+      "*/config/*",
+      "*.ini",
+      "*.cfg",
+      "*.settings"
+    ]
+  },
+  
+  "launchers": {
+    "Steam": {
+      "displayName": "Steam",
+      "executable": "steam.exe",
+      "installPath": "E:\\Games\\Steam",
+      "identifiers": [
+        "steam.exe",
+        "steamapps",
+        "steam.dll"
+      ],
+      "critical_folders": [
+        {
+          "path": "%ProgramFiles(x86)%\\Steam\\userdata",
+          "description": "Steam kullanici verileri ve save dosyalari",
+          "type": "junction"
+        },
+        {
+          "path": "%ProgramFiles(x86)%\\Steam\\config",
+          "description": "Steam konfigurasyon dosyalari",
+          "type": "junction"
+        },
+        {
+          "path": "%ProgramData%\\Steam",
+          "description": "Steam program verileri",
+          "type": "junction"
+        }
+      ],
+      "optional_folders": [
+        {
+          "path": "%LocalAppData%\\Steam",
+          "description": "Steam cache dosyalari",
+          "type": "junction"
+        }
+      ],
+      "registry_keys": [
+        "HKLM:\\SOFTWARE\\Valve\\Steam",
+        "HKLM:\\SOFTWARE\\WOW6432Node\\Valve\\Steam",
+        "HKCU:\\SOFTWARE\\Valve\\Steam"
+      ],
+      "services": [],
+      "ignore_folders": [
+        "dumps",
+        "logs",
+        "htmlcache",
+        "depotcache",
+        "shadercache"
+      ]
+    },
+    
+    "Epic": {
+      "displayName": "Epic Games",
+      "executable": "EpicGamesLauncher.exe",
+      "installPath": "E:\\Games\\Epic Games",
+      "identifiers": [
+        "EpicGamesLauncher.exe",
+        "Epic Games",
+        "UnrealEngine"
+      ],
+      "critical_folders": [
+        {
+          "path": "%ProgramData%\\Epic",
+          "description": "Epic Games launcher verileri",
+          "type": "junction"
+        },
+        {
+          "path": "%LocalAppData%\\EpicGamesLauncher",
+          "description": "Epic Games launcher konfigurasyon",
+          "type": "junction"
+        },
+        {
+          "path": "%ProgramData%\\Epic\\EpicGamesLauncher\\Data\\Manifests",
+          "description": "Oyun manifest dosyalari",
+          "type": "junction"
+        }
+      ],
+      "optional_folders": [
+        {
+          "path": "%LocalAppData%\\UnrealEngine",
+          "description": "Unreal Engine verileri",
+          "type": "junction"
+        },
+        {
+          "path": "%LocalAppData%\\EpicGamesLauncher\\Saved",
+          "description": "Epic launcher kayitli veriler",
+          "type": "junction"
+        }
+      ],
+      "registry_keys": [
+        "HKLM:\\SOFTWARE\\EpicGames",
+        "HKLM:\\SOFTWARE\\WOW6432Node\\Epic Games",
+        "HKCU:\\SOFTWARE\\EpicGames"
+      ],
+      "services": [],
+      "ignore_folders": [
+        "Logs",
+        "WebCache",
+        "webcache"
+      ]
+    },
+    
+    "Riot": {
+      "displayName": "Riot Games",
+      "executable": "RiotClientServices.exe",
+      "installPath": "E:\\Riot Games",
+      "identifiers": [
+        "RiotClientServices.exe",
+        "Riot Client",
+        "RiotClientInstalls.json"
+      ],
+      "critical_folders": [
+        {
+          "path": "%ProgramData%\\Riot Games",
+          "description": "Riot Games metadata ve konfigurasyon",
+          "type": "junction"
+        },
+        {
+          "path": "%ProgramData%\\Riot Games\\Metadata",
+          "description": "Oyun metadata dosyalari",
+          "type": "junction"
+        },
+        {
+          "path": "%LocalAppData%\\Riot Games",
+          "description": "Riot Games kullanici verileri",
+          "type": "junction"
+        }
+      ],
+      "optional_folders": [
+        {
+          "path": "%AppData%\\Riot Games",
+          "description": "Riot Games roaming verileri",
+          "type": "junction"
+        }
+      ],
+      "registry_keys": [
+        "HKLM:\\SOFTWARE\\Riot Games",
+        "HKLM:\\SOFTWARE\\WOW6432Node\\Riot Games",
+        "HKCU:\\SOFTWARE\\Riot Games",
+        "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\vgc",
+        "HKLM:\\SYSTEM\\CurrentControlSet\\Services\\vgk"
+      ],
+      "services": [
+        "vgc",
+        "vgk"
+      ],
+      "special_files": [
+        "%ProgramData%\\Riot Games\\RiotClientInstalls.json",
+        "%ProgramData%\\Riot Games\\machine.cfg"
+      ],
+      "ignore_folders": [
+        "Logs",
+        "Debug"
+      ]
+    },
+    
+    "Battlenet": {
+      "displayName": "Battle.net",
+      "executable": "Battle.net.exe",
+      "installPath": "E:\\Games\\Battle.net",
+      "identifiers": [
+        "Battle.net.exe",
+        "Battle.net",
+        "Blizzard"
+      ],
+      "critical_folders": [
+        {
+          "path": "%ProgramData%\\Battle.net",
+          "description": "Battle.net program verileri",
+          "type": "junction"
+        },
+        {
+          "path": "%AppData%\\Battle.net",
+          "description": "Battle.net kullanici ayarlari",
+          "type": "junction"
+        },
+        {
+          "path": "%LocalAppData%\\Battle.net",
+          "description": "Battle.net local verileri",
+          "type": "junction"
+        }
+      ],
+      "optional_folders": [
+        {
+          "path": "%ProgramData%\\Blizzard Entertainment",
+          "description": "Blizzard oyun verileri",
+          "type": "junction"
+        },
+        {
+          "path": "%LocalAppData%\\Blizzard Entertainment",
+          "description": "Blizzard local verileri",
+          "type": "junction"
+        }
+      ],
+      "registry_keys": [
+        "HKLM:\\SOFTWARE\\Blizzard Entertainment",
+        "HKCU:\\SOFTWARE\\Blizzard Entertainment",
+        "HKLM:\\SOFTWARE\\WOW6432Node\\Blizzard Entertainment"
+      ],
+      "services": [],
+      "ignore_folders": [
+        "Cache",
+        "Logs",
+        "Errors"
+      ]
+    },
+    
+    "EA": {
+      "displayName": "EA Desktop",
+      "executable": "EADesktop.exe",
+      "installPath": "E:\\Games\\EA",
+      "identifiers": [
+        "EADesktop.exe",
+        "EA Desktop",
+        "Origin"
+      ],
+      "critical_folders": [
+        {
+          "path": "%ProgramData%\\EA Desktop",
+          "description": "EA Desktop program verileri",
+          "type": "junction"
+        },
+        {
+          "path": "%LocalAppData%\\EADesktop",
+          "description": "EA Desktop local verileri",
+          "type": "junction"
+        },
+        {
+          "path": "%LocalAppData%\\Electronic Arts",
+          "description": "EA oyun kayit dosyalari",
+          "type": "junction"
+        }
+      ],
+      "optional_folders": [
+        {
+          "path": "%AppData%\\EA Desktop",
+          "description": "EA Desktop roaming verileri",
+          "type": "junction"
+        },
+        {
+          "path": "%LocalAppData%\\EALaunchHelper",
+          "description": "EA Launch Helper",
+          "type": "junction"
+        }
+      ],
+      "registry_keys": [
+        "HKLM:\\SOFTWARE\\Electronic Arts",
+        "HKLM:\\SOFTWARE\\EA Games",
+        "HKCU:\\SOFTWARE\\Electronic Arts",
+        "HKLM:\\SOFTWARE\\WOW6432Node\\Electronic Arts"
+      ],
+      "services": [],
+      "ignore_folders": [
+        "cache",
+        "logs",
+        "temp"
+      ]
+    },
+    
+    "Ubisoft": {
+      "displayName": "Ubisoft Connect",
+      "executable": "UbisoftConnect.exe",
+      "installPath": "E:\\Games\\Ubisoft",
+      "identifiers": [
+        "UbisoftConnect.exe",
+        "Ubisoft Game Launcher",
+        "upc.exe"
+      ],
+      "critical_folders": [
+        {
+          "path": "%LocalAppData%\\Ubisoft Game Launcher",
+          "description": "Ubisoft launcher verileri",
+          "type": "junction"
+        },
+        {
+          "path": "%ProgramData%\\Ubisoft",
+          "description": "Ubisoft program verileri",
+          "type": "junction"
+        }
+      ],
+      "optional_folders": [
+        {
+          "path": "%AppData%\\Ubisoft",
+          "description": "Ubisoft roaming verileri",
+          "type": "junction"
+        }
+      ],
+      "registry_keys": [
+        "HKLM:\\SOFTWARE\\Ubisoft",
+        "HKCU:\\SOFTWARE\\Ubisoft",
+        "HKLM:\\SOFTWARE\\WOW6432Node\\Ubisoft"
+      ],
+      "services": [],
+      "ignore_folders": [
+        "cache",
+        "logs",
+        "crashes"
+      ]
+    },
+    
+    "Wargaming": {
+      "displayName": "Wargaming Game Center",
+      "executable": "wgc.exe",
+      "installPath": "E:\\Games\\Wargaming",
+      "identifiers": [
+        "wgc.exe",
+        "Wargaming.net",
+        "GameCenter"
+      ],
+      "critical_folders": [
+        {
+          "path": "%ProgramData%\\Wargaming.net\\GameCenter",
+          "description": "Wargaming Game Center verileri",
+          "type": "junction"
+        }
+      ],
+      "optional_folders": [
+        {
+          "path": "%AppData%\\Wargaming.net",
+          "description": "Wargaming kullanici verileri",
+          "type": "junction"
+        }
+      ],
+      "registry_keys": [
+        "HKLM:\\SOFTWARE\\Wargaming.net",
+        "HKCU:\\SOFTWARE\\Wargaming.net"
+      ],
+      "services": [],
+      "ignore_folders": [
+        "logs",
+        "temp"
+      ]
+    }
+  },
+  
+  "games": {
+    "Valorant": {
+      "launcher": "Riot",
+      "displayName": "VALORANT",
+      "installPath": "E:\\Riot Games\\VALORANT",
+      "executable": "VALORANT.exe",
+      "requires_anticheat": true,
+      "anticheat_service": "vgc",
+      "special_requirements": [
+        "Vanguard anti-cheat servisi zorunlu",
+        "Secure Boot aktif olmali"
+      ]
+    },
+    
+    "LeagueOfLegends": {
+      "launcher": "Riot",
+      "displayName": "League of Legends",
+      "installPath": "E:\\Riot Games\\League of Legends",
+      "executable": "LeagueClient.exe",
+      "requires_anticheat": false
+    },
+    
+    "Fortnite": {
+      "launcher": "Epic",
+      "displayName": "Fortnite",
+      "installPath": "E:\\Games\\Fortnite",
+      "executable": "FortniteClient-Win64-Shipping.exe",
+      "requires_anticheat": true,
+      "anticheat_service": "EasyAntiCheat"
+    },
+    
+    "CallOfDuty": {
+      "launcher": "Battlenet",
+      "displayName": "Call of Duty",
+      "installPath": "E:\\Games\\Call of Duty",
+      "executable": "cod.exe",
+      "requires_anticheat": true,
+      "anticheat_service": "Ricochet"
+    },
+    
+    "Overwatch2": {
+      "launcher": "Battlenet",
+      "displayName": "Overwatch 2",
+      "installPath": "E:\\Games\\Overwatch 2",
+      "executable": "Overwatch.exe",
+      "requires_anticheat": false
+    },
+    
+    "ApexLegends": {
+      "launcher": "EA",
+      "displayName": "Apex Legends",
+      "installPath": "E:\\Games\\Apex Legends",
+      "executable": "r5apex.exe",
+      "requires_anticheat": true,
+      "anticheat_service": "EasyAntiCheat"
+    },
+    
+    "FIFA": {
+      "launcher": "EA",
+      "displayName": "EA SPORTS FC",
+      "installPath": "E:\\Games\\EA SPORTS FC",
+      "executable": "FC24.exe",
+      "requires_anticheat": true,
+      "anticheat_service": "EAAntiCheat"
+    },
+    
+    "RainbowSixSiege": {
+      "launcher": "Ubisoft",
+      "displayName": "Rainbow Six Siege",
+      "installPath": "E:\\Games\\Rainbow Six Siege",
+      "executable": "RainbowSix.exe",
+      "requires_anticheat": true,
+      "anticheat_service": "BattlEye"
+    },
+    
+    "WorldOfTanks": {
+      "launcher": "Wargaming",
+      "displayName": "World of Tanks",
+      "installPath": "E:\\Games\\World_of_Tanks",
+      "executable": "WorldOfTanks.exe",
+      "requires_anticheat": false
+    },
+    
+    "CSGO": {
+      "launcher": "Steam",
+      "displayName": "Counter-Strike 2",
+      "installPath": "E:\\Games\\Steam\\steamapps\\common\\Counter-Strike Global Offensive",
+      "executable": "cs2.exe",
+      "requires_anticheat": true,
+      "anticheat_service": "VAC"
+    },
+    
+    "PUBG": {
+      "launcher": "Steam",
+      "displayName": "PUBG BATTLEGROUNDS",
+      "installPath": "E:\\Games\\Steam\\steamapps\\common\\PUBG",
+      "executable": "TslGame.exe",
+      "requires_anticheat": true,
+      "anticheat_service": "BattlEye"
+    },
+    
+    "GTA5": {
+      "launcher": "Epic",
+      "displayName": "Grand Theft Auto V",
+      "installPath": "E:\\Games\\Grand Theft Auto V",
+      "executable": "GTA5.exe",
+      "requires_anticheat": false
+    }
+  },
+  
+  "anticheat_services": {
+    "vgc": {
+      "name": "Riot Vanguard",
+      "service_name": "vgc",
+      "driver_name": "vgk.sys",
+      "start_type": "boot",
+      "critical": true
+    },
+    "EasyAntiCheat": {
+      "name": "Easy Anti-Cheat",
+      "service_name": "EasyAntiCheat",
+      "driver_name": "EasyAntiCheat.sys",
+      "start_type": "manual",
+      "critical": true
+    },
+    "BattlEye": {
+      "name": "BattlEye",
+      "service_name": "BEService",
+      "driver_name": "BEDaisy.sys",
+      "start_type": "manual",
+      "critical": true
+    },
+    "VAC": {
+      "name": "Valve Anti-Cheat",
+      "service_name": "",
+      "integrated": true,
+      "critical": false
+    }
+  }
+}

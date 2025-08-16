@@ -1,0 +1,58 @@
+{
+  "version": "2.0",
+  "system": {
+    "name": "GameSet Advanced",
+    "description": "Diskless Gaming Cafe Management System",
+    "pattern_based": true,
+    "client_detection": true,
+    "server_deploy": true,
+    "auto_loader": true
+  },
+  "paths": {
+    "gameset_root": "E:\\GameSet",
+    "scripts": "E:\\GameSet\\Scripts",
+    "data": "E:\\GameSet\\Data",
+    "logs": "E:\\GameSet\\Logs",
+    "junkfiles": "E:\\JunkFiles",
+    "patterns_db": "E:\\GameSet\\Data\\GamePatterns.json"
+  },
+  "features": {
+    "pattern_detection": {
+      "enabled": true,
+      "database": "GamePatterns.json",
+      "offline_mode": true
+    },
+    "portable_packages": {
+      "enabled": true,
+      "naming_format": "{GameName}Set",
+      "deploy_marker": ".deployed_to_server"
+    },
+    "symlink_management": {
+      "enabled": true,
+      "type": "junction",
+      "auto_repair": true
+    },
+    "diagnostics": {
+      "enabled": true,
+      "auto_fix": true,
+      "test_categories": 7
+    },
+    "powershell_bypass": {
+      "enabled": true,
+      "method": "bat_wrapper",
+      "execution_policy": "Bypass"
+    }
+  },
+  "installed_packages": [],
+  "deployed_packages": [],
+  "maintenance": {
+    "auto_cleanup": false,
+    "log_rotation_days": 30,
+    "cache_cleanup_days": 7
+  },
+  "settings": {
+    "encoding": "UTF-8",
+    "language": "tr-TR",
+    "date_format": "yyyy-MM-dd HH:mm:ss"
+  }
+}

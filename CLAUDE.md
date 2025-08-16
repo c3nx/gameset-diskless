@@ -1,96 +1,147 @@
-# GameSet - Diskless Gaming Cafe Sistemi
+# GameSet Advanced - Diskless Gaming Cafe Sistemi v2.0
 
 ## Genel Bakış
 
-GameSet, diskless gaming cafe sistemleri için geliştirilmiş merkezi oyun yönetim sistemidir. Server'daki E: sürücüsünden tüm client'ların oyunları sorunsuz çalıştırmasını sağlar.
+GameSet Advanced, diskless gaming cafe sistemleri için geliştirilmiş, pattern-based akıllı tespit sistemine sahip merkezi oyun yönetim platformudur. Server'daki E: sürücüsünden tüm client'ların oyunları sorunsuz çalıştırmasını sağlar.
+
+## Yenilikler (v2.0)
+
+- **Pattern-Based Detection**: AI yerine hızlı ve güvenilir pattern database
+- **Client-Based Detection**: Ekran kartı olmayan server sorunu çözüldü  
+- **Portable GameSet Paketleri**: Her oyun kendi Set klasöründe (ValorantSet, FortniteSet vb.)
+- **Deploy-Once Mekanizması**: Server C:'ye tek seferlik deploy, UpdateSync otomatik çalışır
+- **Game Doctor**: Otomatik sorun tespit ve çözüm aracı (7 test kategorisi)
+- **PowerShell Bypass**: ExecutionPolicy sorunları BAT wrapper'lar ile otomatik çözülür
+- **Symlink Manager**: Akıllı symlink yönetimi ve onarım modülü
 
 ## Sistem Mimarisi
 
 ```
 Server (E: Sürücüsü)
-├── E:\GameSet\          (Merkezi yönetim)
-│   ├── GameSet.bat      (Client başlangıç scripti)
-│   ├── UpdateSync.bat   (Update sonrası sync)
-│   ├── DetectNewGame.ps1 (Yeni oyun ekleme)
-│   ├── config.json      (Oyun konfigürasyonları)
-│   ├── Registry\        (Registry dosyaları)
-│   └── Logs\           (İşlem logları)
-└── E:\JunkFiles\        (C: klasörlerinin kopyaları)
-    ├── Battle.net_app\
-    ├── Steam_prg\
+├── E:\GameSet\                    (Merkezi yönetim)
+│   ├── ValorantSet\              (Portable oyun paketi)
+│   │   ├── config.json           (Oyun konfigürasyonu)
+│   │   ├── registry.reg          (Registry kayıtları)
+│   │   ├── .deployed_to_server   (Deploy marker)
+│   │   └── Files\                (Oyun dosyaları)
+│   │       ├── AppData_Local\
+│   │       ├── AppData_Roaming\
+│   │       └── ProgramData\
+│   ├── FortniteSet\              (Başka bir oyun)
+│   ├── Scripts\                   (PowerShell scriptleri)
+│   ├── Data\                      (Pattern database)
+│   │   └── GamePatterns.json
+│   └── Logs\                      (İşlem logları)
+└── E:\JunkFiles\                  (C: sync klasörleri)
+    ├── Valorant_AppData_Local\
+    ├── Valorant_ProgramData\
     └── ...
 
 Client'lar (Diskless)
-├── C: Sürücüsü → Symlink'ler E:\JunkFiles'a yönlendirir
-└── Registry → E:\GameSet\Registry\'den import edilir
+├── C: Sürücüsü → Symlink'ler E:\GameSet\*Set\Files'a
+└── Registry → Her GameSet'in registry.reg dosyasından
 ```
 
 ## Çalışma Prensibi
 
-1. **Client Açılışı**: `GameSet.bat` otomatik çalışır
-2. **Registry Import**: E:\GameSet\Registry\'deki tüm .reg dosyaları import edilir
-3. **Symlink Oluşturma**: C: sürücüsündeki oyun klasörleri E:\JunkFiles'a yönlendirilir
-4. **Oyun Çalıştırma**: Oyunlar kendi klasörlerinin C:'de olduğunu sanır
+### Client-Based Detection → Server Deployment → Client Auto-Loading
 
-## Dosya Açıklamaları
+1. **Client'ta Tespit**: Oyun client'a kurulur, değişiklikler tespit edilir
+2. **GameSet Paketi**: Portable paket oluşturulur (OyunAdiSet formatında)
+3. **Server Deploy**: Paket server C:'ye deploy edilir
+4. **Auto-Loading**: Tüm client'lar restart'ta paketi otomatik yükler
 
-### GameSet.bat
-- **Amaç**: Client açılışında otomatik çalışan ana script
-- **İşlevi**: 
-  - Administrator kontrolü yapar
-  - Registry\\'deki tüm .reg dosyalarını import eder
+## Kritik Dosyalar ve İşlevleri
+
+### Pattern Database: GamePatterns.json
+- **Amaç**: Tüm launcher ve oyun pattern'lerini içeren merkezi veritabanı
+- **İçerik**: Launcher tanımlayıcıları, kritik klasörler, registry key'leri, anti-cheat servisleri
+- **Kullanım**: Offline ve hızlı pattern-based tespit için
+
+### Client-Side Detection: GS_Client_DetectNewGame.bat/ps1
+- **Amaç**: Client'ta yeni oyun tespit ve portable GameSet paketi oluşturma
+- **İşlevi**:
+  - Before/after snapshot alır
+  - Pattern database kullanarak değişiklikleri filtreler
+  - Portable GameSet paketi oluşturur (ÖrnekSet formatında)
+  - Registry ve dosyaları organize eder
+- **Çalıştırma**: `GS_Client_DetectNewGame.bat` veya `GS_RunPowerShell.bat Scripts\GS_Client_DetectNewGame.ps1`
+
+### Server Deployment: GS_Server_DeployToC.bat/ps1  
+- **Amaç**: GameSet paketlerini server C: sürücüsüne deploy eder
+- **İşlevi**:
+  - Paketi C:\GameSet'e kopyalar
+  - E:\JunkFiles'a senkronize eder
+  - Deploy marker dosyası oluşturur
+  - UpdateSync'in çalışması için gerekli
+- **Çalıştırma**: `GS_Server_DeployToC.bat ValorantSet`
+
+### Client Auto-Loader: GS_Client_AutoLoader.bat/ps1
+- **Amaç**: Client açılışında tüm GameSet paketlerini otomatik yükler
+- **İşlevi**:
+  - E:\GameSet'teki tüm *Set klasörlerini tarar
+  - Her paket için registry import eder
   - Symlink'leri oluşturur
-- **Çalıştırma**: Gizmo startup scriptine `E:\GameSet\GameSet.bat` ekleyin
+- **Çalıştırma**: Gizmo startup'a `GS_Client_AutoLoader.bat` ekleyin
 
-### UpdateSync.bat
-- **Amaç**: Oyun güncellemeleri sonrası manual çalıştırılır
+### Update Synchronization: GS_Server_UpdateSync.bat/ps1
+- **Amaç**: Deploy edilmiş oyunların güncellemelerini yakalar
 - **İşlevi**:
-  - C: sürücüsündeki oyun klasörlerini E:\JunkFiles'a senkronize eder
-  - Sadece değişen dosyaları kopyalar (hızlı sync)
-- **Çalıştırma**: Update sonrası `E:\GameSet\UpdateSync.bat` çalıştırın
+  - Sadece deploy edilmiş oyunları günceller
+  - C: → E:\JunkFiles senkronizasyonu
+  - Multi-thread robocopy kullanır
+- **Çalıştırma**: Update sonrası `GS_Server_UpdateSync.bat`
 
-### DetectNewGame.ps1
-- **Amaç**: Yeni oyun sisteme eklemek için kullanılır
-- **İşlevi**:
-  - Sistem snapshot'ı alır
-  - Oyun kurulumu sırasında değişiklikleri tespit eder
-  - Registry değişikliklerini export eder
-  - Yeni klasörleri E:\JunkFiles'a kopyalar
-  - UpdateSync.bat'ı günceller
-- **Çalıştırma**: PowerShell'de `E:\GameSet\DetectNewGame.ps1`
+### Diagnostic Tool: GS_Tools_GameDoctor.bat/ps1
+- **Amaç**: Oyun sorunlarını tespit ve otomatik çözüm
+- **Test Kategorileri**:
+  1. Deployment durumu
+  2. Registry kayıtları
+  3. Symlink bütünlüğü
+  4. Anti-cheat servisleri
+  5. Launcher varlığı
+  6. Disk alanı
+  7. JunkFiles sync durumu
+- **Çalıştırma**: `GS_Tools_GameDoctor.bat Valorant -AutoFix`
 
-### config.json
-- **Amaç**: Sistemdeki oyunların konfigürasyonunu saklar
-- **İçerik**: Her oyun için registry dosyası ve klasör eşleşmeleri
-- **Güncelleme**: DetectNewGame.ps1 tarafından otomatik güncellenir
+### Core Modules
+- **GS_Core_SmartDetector.ps1**: Pattern-based tespit motoru
+- **GS_Core_SymlinkManager.ps1**: Symlink oluşturma ve onarım
+- **GS_RunPowerShell.bat**: ExecutionPolicy bypass helper
 
-## Yeni Oyun Ekleme Süreci
+## Yeni Oyun Ekleme Süreci (Client-Based)
 
-### Adım 1: DetectNewGame.ps1 Çalıştırın
-```powershell
-PowerShell -ExecutionPolicy Bypass -File "E:\GameSet\DetectNewGame.ps1"
+### Adım 1: Client'ta Tespit Başlat
+```batch
+GS_Client_DetectNewGame.bat
 ```
 
 ### Adım 2: Oyun Adını Girin
 ```
-Oyun adını girin: Valorant
+Oyun adini girin: Valorant
 ```
 
-### Adım 3: Oyunu Kurun
+### Adım 3: Oyunu Client'a Kurun
 1. Launcher'ı açın (Riot Client)
-2. Valorant'ı indirmeye başlayın
-3. İndirme %5-10'a gelince DURDURUN
-4. Enter'a basın
+2. Valorant'ı E: sürücüsüne kurulum başlatın
+3. Kurulum %5-10'a gelince script'e dönün
+4. Enter'a basarak snapshot alın
 
-### Adım 4: Otomatik İşlem
+### Adım 4: Otomatik GameSet Paketi
 Script otomatik olarak:
-- Registry değişikliklerini tespit eder
-- `valorant.reg` dosyası oluşturur
-- Klasörleri E:\JunkFiles'a kopyalar
-- UpdateSync.bat'ı günceller
+- Pattern database ile değişiklikleri tespit eder
+- `ValorantSet` klasörü oluşturur
+- Registry'yi `registry.reg` olarak export eder  
+- Kritik dosyaları `Files\` altına organize eder
+- `config.json` ile paket konfigürasyonu oluşturur
 
-### Adım 5: Test
-Client'ları restart edin, Valorant çalışmaya hazır!
+### Adım 5: Server'a Deploy
+```batch
+GS_Server_DeployToC.bat ValorantSet
+```
+
+### Adım 6: Client'larda Test
+Client'ları restart edin, AutoLoader otomatik yükleyecek!
 
 ## Desteklenen Oyunlar
 
@@ -107,13 +158,13 @@ Client'ları restart edin, Valorant çalışmaya hazır!
 - **Arena Breakout**: Standalone oyun
 
 ### Yeni Launcher Ekleme
-DetectNewGame.ps1 kullanarak herhangi bir oyun/launcher ekleyebilirsiniz.
+GamePatterns.json'a yeni pattern ekleyerek veya GS_Client_DetectNewGame.bat kullanarak herhangi bir oyun/launcher ekleyebilirsiniz.
 
 ## Maintenance (Bakım)
 
 ### Günlük İşlemler
 1. Oyun güncellemelerini yapın
-2. `UpdateSync.bat` çalıştırın
+2. `GS_Server_UpdateSync.bat` çalıştırın
 3. Client'ları test edin
 
 ### Haftalık İşlemler
@@ -123,70 +174,117 @@ DetectNewGame.ps1 kullanarak herhangi bir oyun/launcher ekleyebilirsiniz.
 
 ### Aylık İşlemler
 1. Kullanılmayan oyunları devre dışı bırakın
-2. Registry dosyalarını optimize edin
+2. GamePatterns.json'ı güncelleyin
 3. Sistem performansını kontrol edin
 
 ## Sorun Giderme
 
 ### Problem: Oyun açılmıyor
-**Çözüm**:
-1. GameSet.bat'ın çalıştığını kontrol edin
-2. Registry dosyasının var olduğunu kontrol edin
-3. Symlink'lerin düzgün oluştuğunu kontrol edin
+**Hızlı Çözüm**: Game Doctor kullanın
+```batch
+GS_Tools_GameDoctor.bat Valorant -AutoFix
+```
 
-### Problem: Ayarlar kayboluyor
-**Çözüm**:
-1. UpdateSync.bat'ı çalıştırın
-2. E:\JunkFiles'daki klasörleri kontrol edin
-3. Registry dosyasını yeniden import edin
+### Problem: PowerShell script'leri çalışmıyor
+**Çözüm**: BAT wrapper kullanın
+```batch
+GS_RunPowerShell.bat Scripts\ScriptAdi.ps1
+```
 
-### Problem: Yeni oyun eklenmiyor
-**Çözüm**:
-1. DetectNewGame.ps1'i Administrator olarak çalıştırın
-2. Oyunun düzgün kurulduğunu kontrol edin
-3. Değişikliklerin tespit edildiğini kontrol edin
+### Problem: Symlink'ler bozuk
+**Çözüm**: Symlink Manager ile onarın
+```powershell
+GS_RunPowerShell.bat Scripts\GS_Core_SymlinkManager.ps1 -Repair
+```
 
-### Problem: Disk dolması
-**Çözüm**:
-1. E:\JunkFiles'da gereksiz dosyaları silin
-2. Cache klasörlerini temizleyin
-3. Eski oyun verilerini temizleyin
+### Problem: GameSet paketi deploy edilmemiş
+**Çözüm**: Server'da deploy edin
+```batch
+GS_Server_DeployToC.bat OyunAdiSet
+```
+
+### Problem: Anti-cheat servisi çalışmıyor
+**Çözüm**: Game Doctor AutoFix kullanın
+```batch
+GS_Tools_GameDoctor.bat OyunAdi -AutoFix
+```
+
+### Problem: Launcher bulunamıyor
+**Çözüm**: 
+1. GamePatterns.json'da launcher tanımlı mı kontrol edin
+2. Launcher'ı manuel kurun
+3. Tekrar tespit çalıştırın
 
 ## Teknik Detaylar
 
-### Registry İşleme
-- Tüm .reg dosyaları otomatik import edilir
-- Registry anahtarları oyun bazında ayrılır
-- Sistem registry'si etkilenmez
+### Pattern-Based Detection
+- GamePatterns.json veritabanı kullanır
+- AI gerektirmez, offline çalışır
+- Hızlı ve güvenilir tespit
+- Registry, klasör ve servis pattern'leri
+
+### Portable GameSet Paketleri
+- Her oyun kendi Set klasöründe
+- config.json ile konfigürasyon
+- registry.reg ile registry ayarları
+- Files/ altında organize dosyalar
+
+### Deploy-Once Mekanizması
+- Server C:'ye tek seferlik deploy
+- .deployed_to_server marker dosyası
+- UpdateSync sadece deploy edilmişleri günceller
 
 ### Symlink Sistemi
 - Junction kullanılır (mklink /J)
 - Oyunlar gerçek klasör sanır
 - Read/write işlemleri şeffaf
+- SymlinkManager ile otomatik onarım
 
 ### Dosya Senkronizasyonu
 - Robocopy kullanılır
 - Sadece değişen dosyalar kopyalanır
-- Multi-thread desteği (hızlı kopyalama)
+- Multi-thread desteği (/MT:16)
 
 ## Gelişmiş Kullanım
 
-### Özel Oyun Ekleme
-Manuel olarak oyun eklemek için:
-1. Registry dosyasını oluşturun
-2. config.json'ı güncelleyin
-3. UpdateSync.bat'a yeni satırlar ekleyin
-4. GameSet.bat'a symlink satırları ekleyin
+### Custom Pattern Ekleme
+GamePatterns.json'a yeni pattern ekleyin:
+```json
+{
+  "launchers": {
+    "CustomLauncher": {
+      "displayName": "Custom Launcher",
+      "identifiers": ["custom.exe"],
+      "critical_folders": ["Custom"],
+      "registry_keys": ["HKLM\\SOFTWARE\\Custom"]
+    }
+  }
+}
+```
 
-### Toplu İşlemler
-Birden fazla oyunu aynı anda eklemek için DetectNewGame.ps1'i tekrar tekrar çalıştırın.
+### Toplu Deploy
+Birden fazla GameSet paketini deploy edin:
+```batch
+for %G in (ValorantSet FortniteSet CSGOSet) do GS_Server_DeployToC.bat %G
+```
 
-### Performans Optimizasyonu
-- SSD kullanın
-- Network bandwidth'ini artırın
-- RAM miktarını artırın
+### Diagnostic Report
+Detaylı rapor alın:
+```batch
+GS_Tools_GameDoctor.bat OyunAdi -Detailed > report.txt
+```
 
 ## Changelog
+
+### v2.0 (2025-01-16)
+- Pattern-based tespit sistemi (AI yerine)
+- Client-based detection (server GPU sorunu çözümü)
+- Portable GameSet paketleri
+- Deploy-once mekanizması
+- Game Doctor diagnostic tool
+- PowerShell ExecutionPolicy bypass
+- Symlink Manager modülü
+- BAT wrapper'lar ile kolay kullanım
 
 ### v1.0 (2025-01-14)
 - İlk versiyon
@@ -202,6 +300,7 @@ Ticari kullanım için izin gereklidir.
 ---
 
 **Destek**: Sorunlar için detaylı log dosyalarını kontrol edin:
-- `E:\GameSet\Logs\startup.log`
+- `E:\GameSet\Logs\detection.log`
+- `E:\GameSet\Logs\deployment.log`
+- `E:\GameSet\Logs\game_doctor.log`
 - `E:\GameSet\Logs\sync.log`
-- `E:\GameSet\Logs\newgames.log`
