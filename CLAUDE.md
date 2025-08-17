@@ -19,7 +19,6 @@ GameSet Advanced, diskless gaming cafe sistemleri için geliştirilmiş, Claude 
 - **Client-Based Detection**: Ekran kartı olmayan server sorunu çözüldü  
 - **Portable GameSet Paketleri**: Her oyun kendi Set klasöründe
 - **Deploy-Once Mekanizması**: Server C:'ye tek seferlik deploy
-- **Game Doctor**: Otomatik sorun tespit ve çözüm aracı
 - **PowerShell Bypass**: ExecutionPolicy sorunları otomatik çözülür
 - **Symlink Manager**: Akıllı symlink yönetimi ve onarım modülü
 
@@ -112,17 +111,6 @@ Client'lar (Diskless)
   - Multi-thread robocopy kullanır
 - **Çalıştırma**: Update sonrası `GS_Server_UpdateSync.bat`
 
-### Diagnostic Tool: GS_Tools_GameDoctor.bat/ps1
-- **Amaç**: Oyun sorunlarını tespit ve otomatik çözüm
-- **Test Kategorileri**:
-  1. Deployment durumu
-  2. Registry kayıtları
-  3. Symlink bütünlüğü
-  4. Anti-cheat servisleri
-  5. Launcher varlığı
-  6. Disk alanı
-  7. JunkFiles sync durumu
-- **Çalıştırma**: `GS_Tools_GameDoctor.bat Valorant -AutoFix`
 
 ### Core Modules
 - **GS_Core_SmartDetector.ps1**: Pattern-based tespit motoru
@@ -274,10 +262,10 @@ GamePatterns.json'a yeni pattern ekleyerek veya GS_Client_DetectNewGame.bat kull
 ## Sorun Giderme
 
 ### Problem: Oyun açılmıyor
-**Hızlı Çözüm**: Game Doctor kullanın
-```batch
-GS_Tools_GameDoctor.bat Valorant -AutoFix
-```
+**Çözüm**: 
+1. Registry'nin doğru import edildiğini kontrol edin
+2. Symlink'lerin doğru oluşturulduğunu kontrol edin
+3. Server'a deploy edildiğinden emin olun
 
 ### Problem: PowerShell script'leri çalışmıyor
 **Çözüm**: BAT wrapper kullanın
@@ -298,10 +286,10 @@ GS_Server_DeployToC.bat OyunAdiSet
 ```
 
 ### Problem: Anti-cheat servisi çalışmıyor
-**Çözüm**: Game Doctor AutoFix kullanın
-```batch
-GS_Tools_GameDoctor.bat OyunAdi -AutoFix
-```
+**Çözüm**: 
+1. Anti-cheat servisini manuel olarak kontrol edin
+2. Gerekirse servisi yeniden başlatın
+3. Oyunu yeniden kurun
 
 ### Problem: Launcher bulunamıyor
 **Çözüm**: 
@@ -382,12 +370,6 @@ Birden fazla GameSet paketini deploy edin:
 for %G in (ValorantSet FortniteSet CSGOSet) do GS_Server_DeployToC.bat %G
 ```
 
-### Diagnostic Report
-Detaylı rapor alın:
-```batch
-GS_Tools_GameDoctor.bat OyunAdi -Detailed > report.txt
-```
-
 ## Changelog
 
 ### v3.0 (2025-01-18) - Claude AI Edition
@@ -404,7 +386,6 @@ GS_Tools_GameDoctor.bat OyunAdi -Detailed > report.txt
 - Client-based detection
 - Portable GameSet paketleri
 - Deploy-once mekanizması
-- Game Doctor diagnostic tool
 - PowerShell ExecutionPolicy bypass
 - Symlink Manager modülü
 
@@ -424,5 +405,4 @@ Ticari kullanım için izin gereklidir.
 **Destek**: Sorunlar için detaylı log dosyalarını kontrol edin:
 - `E:\GameSet\Logs\detection.log`
 - `E:\GameSet\Logs\deployment.log`
-- `E:\GameSet\Logs\game_doctor.log`
 - `E:\GameSet\Logs\sync.log`
