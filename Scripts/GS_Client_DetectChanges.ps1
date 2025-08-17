@@ -8,7 +8,7 @@ param(
     [string]$Name,  # Paket adi (oyun, program veya ayar adi)
     
     [switch]$SettingsOnly,  # Sadece ayar degisiklikleri icin
-    [switch]$Verbose        # Detayli cikti
+    [switch]$DetailedOutput # Detayli cikti
 )
 
 # Encoding ayari
@@ -90,7 +90,7 @@ $beforeSnapshot = @{
     Services = @()
 }
 
-# Taranacak klasorler - Environment variable kullanalim
+# Taranacak klasorler - Environment variable kullanalim (Sadece C: surucu)
 $scanPaths = @(
     @{Path = $env:APPDATA; Label = "APPDATA"},
     @{Path = $env:LOCALAPPDATA; Label = "LOCALAPPDATA"},
@@ -100,6 +100,9 @@ $scanPaths = @(
     @{Path = "${env:ProgramFiles}"; Label = "PROGRAMFILES"},
     @{Path = "${env:ProgramFiles(x86)}"; Label = "PROGRAMFILESX86"}
 )
+
+# Sadece C: surucudeki path'leri filtrele
+$scanPaths = $scanPaths | Where-Object { $_.Path -like "C:*" }
 
 $i = 0
 foreach ($scan in $scanPaths) {
@@ -168,7 +171,7 @@ $detectedChanges = @{
 }
 
 # Klasor degisikliklerini bul
-Write-Host "[i] Dosya sistemi taraniyor..." -ForegroundColor Cyan
+Write-Host "[i] C: surucusu taraniyor (Temp/Cache klasorleri filtreleniyor)..." -ForegroundColor Cyan
 $i = 0
 foreach ($scan in $scanPaths) {
     if (Test-Path $scan.Path) {
@@ -200,12 +203,31 @@ foreach ($scan in $scanPaths) {
         foreach ($folder in $newFolders) {
             $fullPath = Join-Path $scan.Path $folder.Name
             
-            # Ignore pattern kontrolu
+            # Ignore pattern kontrolu - Temp/Cache/Logs otomatik filtrele
             $isIgnored = $false
-            foreach ($ignorePattern in $patterns.common.ignore_patterns) {
-                if ($folder.Name -match $ignorePattern.Replace("*", ".*").Replace("/", "\\")) {
-                    $isIgnored = $true
-                    break
+            
+            # Temp, Cache, Logs klasorlerini otomatik filtrele
+            $autoIgnoreFolders = @("Temp", "Cache", "Caches", "Logs", "Tmp", "temp", "cache", "logs", "tmp", 
+                                  "CachedData", "CachedFiles", "TempFiles", "TemporaryFiles", 
+                                  "CrashDumps", "CrashReports", "DiagnosticReports")
+            
+            if ($folder.Name -in $autoIgnoreFolders) {
+                $isIgnored = $true
+                if ($DetailedOutput) {
+                    Write-Host "  [-] Ignore: $($folder.Name) (Temp/Cache klasoru)" -ForegroundColor DarkGray
+                }
+            }
+            
+            # Pattern database'den ignore pattern kontrolu
+            if (-not $isIgnored) {
+                foreach ($ignorePattern in $patterns.common.ignore_patterns) {
+                    if ($folder.Name -match $ignorePattern.Replace("*", ".*").Replace("/", "\\")) {
+                        $isIgnored = $true
+                        if ($DetailedOutput) {
+                            Write-Host "  [-] Ignore: $($folder.Name) (Pattern match)" -ForegroundColor DarkGray
+                        }
+                        break
+                    }
                 }
             }
             
@@ -221,7 +243,7 @@ foreach ($scan in $scanPaths) {
                     }
                     
                     if ($isSettings -or $folder.LastWriteTime -gt (Get-Date).AddMinutes(-5)) {
-                        if ($Verbose) {
+                        if ($DetailedOutput) {
                             Write-Host "[+] $fullPath" -ForegroundColor Green
                         }
                         $detectedChanges.Folders += @{
@@ -232,7 +254,7 @@ foreach ($scan in $scanPaths) {
                     }
                 } else {
                     # Normal modda tum degisiklikleri al
-                    if ($Verbose) {
+                    if ($DetailedOutput) {
                         Write-Host "[+] $fullPath" -ForegroundColor Green
                     }
                     $detectedChanges.Folders += @{
@@ -254,7 +276,7 @@ Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
 Write-Host "Klasorler: $($detectedChanges.Folders.Count) adet" -ForegroundColor White
 
-if ($Verbose -and $detectedChanges.Folders.Count -gt 0) {
+if ($DetailedOutput -and $detectedChanges.Folders.Count -gt 0) {
     Write-Host ""
     Write-Host "Detay:" -ForegroundColor Gray
     foreach ($folder in $detectedChanges.Folders[0..([Math]::Min(10, $detectedChanges.Folders.Count-1))]) {
@@ -264,6 +286,8 @@ if ($Verbose -and $detectedChanges.Folders.Count -gt 0) {
         Write-Host "  ... ve $($detectedChanges.Folders.Count - 10) diger klasor" -ForegroundColor Gray
     }
 }
+
+# Claude AI analizi su an icin bos, registry export'tan sonra yapilacak
 
 # STEP 4: Type detection (launcher yerine)
 $detectedType = "Generic"
@@ -306,9 +330,12 @@ foreach ($change in $detectedChanges.Folders) {
         New-Item -Path (Split-Path $targetFolder -Parent) -ItemType Directory -Force | Out-Null
     }
     
-    # Robocopy ile kopyala
-    $excludeDirs = @("temp", "cache", "logs", "tmp", "Temp", "Cache", "Logs")
-    $excludeFiles = @("*.log", "*.tmp", "*.temp", "*.dmp", "*.lock")
+    # Robocopy ile kopyala - Genisletilmis exclude listesi
+    $excludeDirs = @("temp", "cache", "logs", "tmp", "Temp", "Cache", "Logs", "Tmp",
+                     "CachedData", "CachedFiles", "TempFiles", "TemporaryFiles",
+                     "CrashDumps", "CrashReports", "DiagnosticReports")
+    $excludeFiles = @("*.log", "*.tmp", "*.temp", "*.dmp", "*.lock", "*.cache", 
+                      "*.old", "*.bak", "*.backup", "thumbs.db", "desktop.ini")
     
     $robocopyArgs = @(
         $change.Path,
@@ -402,6 +429,53 @@ $registryContent | Out-File "$outputPath\registry.reg" -Encoding UTF8
 
 Write-Host "[OK] $($exportedKeys.Count) registry key export edildi" -ForegroundColor Green
 
+# CLAUDE AI ANALIZI - Gereksiz dosyalari ve registry'leri filtrele
+if ($detectedChanges.Folders.Count -gt 0 -or $exportedKeys.Count -gt 0) {
+    Write-Host ""
+    Write-Host "[AI] Claude AI ile akilli filtreleme baslatiliyor..." -ForegroundColor Magenta
+    
+    # Claude Analyzer modulu cagir
+    $analyzerPath = "$PSScriptRoot\GS_Core_ClaudeAnalyzer.ps1"
+    if (Test-Path $analyzerPath) {
+        try {
+            $changeType = if ($SettingsOnly) { "Settings" } else { "Installation" }
+            
+            # Claude analizini calistir
+            $aiResult = & $analyzerPath `
+                -DetectedChanges $detectedChanges.Folders `
+                -RegistryChanges $exportedKeys `
+                -ProgramName $Name `
+                -ChangeType $changeType `
+                -VerboseOutput:$DetailedOutput
+            
+            if ($aiResult -and $aiResult.FilteredChanges) {
+                Write-Host ""
+                Write-Host "[AI] Filtreleme sonucu:" -ForegroundColor Green
+                Write-Host "  - Klasor: Onceki $($aiResult.OriginalCount) -> Sonraki $($aiResult.FilteredCount)" -ForegroundColor White
+                if ($exportedKeys.Count -gt 0) {
+                    Write-Host "  - Registry: $($exportedKeys.Count) key analiz edildi" -ForegroundColor White
+                }
+                Write-Host "  - Filtrelenen: $($aiResult.ExcludedCount) gereksiz item" -ForegroundColor Yellow
+                
+                # Filtrelenmis listeyi kullan
+                if ($aiResult.FilteredChanges) {
+                    $detectedChanges.Folders = $aiResult.FilteredChanges
+                }
+                
+                if ($DetailedOutput -and $aiResult.Analysis.reasoning) {
+                    Write-Host ""
+                    Write-Host "[AI] $($aiResult.Analysis.reasoning)" -ForegroundColor Cyan
+                }
+            }
+        } catch {
+            Write-Host "[UYARI] Claude AI analizi basarisiz, tum degisiklikler korunuyor" -ForegroundColor Yellow
+            Write-Host "  Hata: $_" -ForegroundColor Gray
+        }
+    } else {
+        Write-Host "[UYARI] Claude Analyzer modulu bulunamadi, filtreleme atlanıyor" -ForegroundColor Yellow
+    }
+}
+
 # Config dosyasini kaydet
 $config | ConvertTo-Json -Depth 10 | Out-File "$outputPath\config.json" -Encoding UTF8
 
@@ -447,7 +521,4 @@ Write-Host "========================================" -ForegroundColor Yellow
 Write-Host ""
 Write-Host "1. Deploy (opsiyonel):" -ForegroundColor White
 Write-Host "   GS_Server_DeployToC.bat $setFolderName" -ForegroundColor Gray
-Write-Host ""
-Write-Host "2. Test:" -ForegroundColor White
-Write-Host "   GS_Tools_GameDoctor.bat $Name" -ForegroundColor Gray
 Write-Host ""

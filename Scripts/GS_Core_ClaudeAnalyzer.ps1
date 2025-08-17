@@ -3,8 +3,11 @@
 # Claude API kullanarak gereksiz dosyalari filtreler
 
 param(
-    [Parameter(Mandatory=$true)]
-    [array]$DetectedChanges,  # Tespit edilen degisiklikler
+    [Parameter(Mandatory=$false)]
+    [array]$DetectedChanges = @(),  # Tespit edilen klasor degisiklikleri
+    
+    [Parameter(Mandatory=$false)]
+    [array]$RegistryChanges = @(),  # Tespit edilen registry degisiklikleri
     
     [Parameter(Mandatory=$true)]
     [string]$ProgramName,  # Program/Oyun adi
@@ -21,6 +24,7 @@ param(
 function Invoke-ClaudeAnalysis {
     param(
         [array]$Changes,
+        [array]$RegistryKeys,
         [string]$Name,
         [string]$Type
     )
@@ -37,7 +41,7 @@ function Invoke-ClaudeAnalysis {
         ProgramData = @()
         ProgramFiles = @()
         Documents = @()
-        Registry = @()
+        Registry = $RegistryKeys
         Other = @()
     }
     
@@ -174,10 +178,18 @@ Please respond with a JSON object containing:
     
     # Ozel program analizi
     if ($Name -like "*Edge*" -and $Type -eq "Settings") {
-        $result.essential_folders = @("Default", "User Data")
-        $result.exclude_folders = @("Temp", "Cache", "Code Cache", "GPUCache", "Service Worker")
-        $result.reasoning = "Edge settings change detected. Only user preferences and profile data are essential."
-        $result.confidence = 0.95
+        if ($RegistryKeys.Count -gt 0 -and $Changes.Count -eq 0) {
+            # Sadece registry degisikligi var
+            $result.essential_folders = @()
+            $result.exclude_folders = @()
+            $result.reasoning = "Edge settings change detected via registry only. No folder changes needed."
+            $result.confidence = 0.98
+        } else {
+            $result.essential_folders = @("Default", "User Data")
+            $result.exclude_folders = @("Temp", "Cache", "Code Cache", "GPUCache", "Service Worker")
+            $result.reasoning = "Edge settings change detected. Only user preferences and profile data are essential."
+            $result.confidence = 0.95
+        }
     } elseif ($Name -like "*Discord*") {
         $result.essential_folders = @("discord", "Discord")
         $result.exclude_folders = @("Cache", "GPUCache", "Code Cache")
@@ -194,6 +206,9 @@ Please respond with a JSON object containing:
     Write-Host ""
     Write-Host "[CLAUDE] Analiz tamamlandi!" -ForegroundColor Green
     Write-Host "[CLAUDE] Essential: $($result.essential_folders.Count) klasor" -ForegroundColor White
+    if ($RegistryKeys.Count -gt 0) {
+        Write-Host "[CLAUDE] Registry: $($RegistryKeys.Count) key analiz edildi" -ForegroundColor White
+    }
     Write-Host "[CLAUDE] Excluded: $($result.exclude_folders.Count) klasor" -ForegroundColor White
     Write-Host "[CLAUDE] Confidence: $([math]::Round($result.confidence * 100))%" -ForegroundColor White
     
@@ -260,10 +275,11 @@ try {
     Write-Host ""
     Write-Host "Program: $ProgramName" -ForegroundColor White
     Write-Host "Type: $ChangeType" -ForegroundColor White
-    Write-Host "Total Changes: $($DetectedChanges.Count)" -ForegroundColor White
+    Write-Host "Folder Changes: $($DetectedChanges.Count)" -ForegroundColor White
+    Write-Host "Registry Changes: $($RegistryChanges.Count)" -ForegroundColor White
     
     # Claude analizini calistir
-    $analysis = Invoke-ClaudeAnalysis -Changes $DetectedChanges -Name $ProgramName -Type $ChangeType
+    $analysis = Invoke-ClaudeAnalysis -Changes $DetectedChanges -RegistryKeys $RegistryChanges -Name $ProgramName -Type $ChangeType
     
     # Degisiklikleri filtrele
     $filteredChanges = Filter-ChangesWithAI -Changes $DetectedChanges -Analysis $analysis
