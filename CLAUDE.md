@@ -1,17 +1,26 @@
-# GameSet Advanced - Diskless Gaming Cafe Sistemi v2.0
+# GameSet Advanced - Diskless Gaming Cafe Sistemi v3.0 (Claude AI Edition)
 
 ## Genel Bakış
 
-GameSet Advanced, diskless gaming cafe sistemleri için geliştirilmiş, pattern-based akıllı tespit sistemine sahip merkezi oyun yönetim platformudur. Server'daki E: sürücüsünden tüm client'ların oyunları sorunsuz çalıştırmasını sağlar.
+GameSet Advanced, diskless gaming cafe sistemleri için geliştirilmiş, Claude AI destekli akıllı tespit sistemine sahip merkezi oyun yönetim platformudur. Server'daki E: sürücüsünden tüm client'ların oyunları sorunsuz çalıştırmasını sağlar.
 
-## Yenilikler (v2.0)
+## Yenilikler (v3.0 - Claude AI Edition)
 
-- **Pattern-Based Detection**: AI yerine hızlı ve güvenilir pattern database
+### v3.0 Özellikleri
+- **Claude AI Entegrasyonu**: Akıllı değişiklik filtreleme ve analiz
+- **Otomatik Temp/Cache Filtreleme**: Gereksiz dosyalar otomatik elenir
+- **C: Sürücü Odaklı Tarama**: Sadece sistem sürücüsü taranır
+- **Verbose AI Analizi**: Claude'un düşünce sürecini görebilme
+- **Gelişmiş Pattern Tanıma**: AI destekli özel program analizi
+- **Confidence Scoring**: AI güven skoruna göre filtreleme
+
+### v2.0 Özellikleri
+- **Pattern-Based Detection**: Hızlı ve güvenilir pattern database
 - **Client-Based Detection**: Ekran kartı olmayan server sorunu çözüldü  
-- **Portable GameSet Paketleri**: Her oyun kendi Set klasöründe (ValorantSet, FortniteSet vb.)
-- **Deploy-Once Mekanizması**: Server C:'ye tek seferlik deploy, UpdateSync otomatik çalışır
-- **Game Doctor**: Otomatik sorun tespit ve çözüm aracı (7 test kategorisi)
-- **PowerShell Bypass**: ExecutionPolicy sorunları BAT wrapper'lar ile otomatik çözülür
+- **Portable GameSet Paketleri**: Her oyun kendi Set klasöründe
+- **Deploy-Once Mekanizması**: Server C:'ye tek seferlik deploy
+- **Game Doctor**: Otomatik sorun tespit ve çözüm aracı
+- **PowerShell Bypass**: ExecutionPolicy sorunları otomatik çözülür
 - **Symlink Manager**: Akıllı symlink yönetimi ve onarım modülü
 
 ## Sistem Mimarisi
@@ -47,9 +56,10 @@ Client'lar (Diskless)
 ### Client-Based Detection → Server Deployment → Client Auto-Loading
 
 1. **Client'ta Tespit**: Oyun client'a kurulur, değişiklikler tespit edilir
-2. **GameSet Paketi**: Portable paket oluşturulur (OyunAdiSet formatında)
-3. **Server Deploy**: Paket server C:'ye deploy edilir
-4. **Auto-Loading**: Tüm client'lar restart'ta paketi otomatik yükler
+2. **Claude AI Analizi**: Gereksiz dosyalar akıllıca filtrelenir
+3. **GameSet Paketi**: Portable paket oluşturulur (OyunAdiSet formatında)
+4. **Server Deploy**: Paket server C:'ye deploy edilir
+5. **Auto-Loading**: Tüm client'lar restart'ta paketi otomatik yükler
 
 ## Kritik Dosyalar ve İşlevleri
 
@@ -62,10 +72,20 @@ Client'lar (Diskless)
 - **Amaç**: Client'ta yeni oyun tespit ve portable GameSet paketi oluşturma
 - **İşlevi**:
   - Before/after snapshot alır
-  - Pattern database kullanarak değişiklikleri filtreler
+  - C: sürücüsünde değişiklikleri tespit eder
+  - Claude AI ile akıllı filtreleme yapar
   - Portable GameSet paketi oluşturur (ÖrnekSet formatında)
   - Registry ve dosyaları organize eder
-- **Çalıştırma**: `GS_Client_DetectNewGame.bat` veya `GS_RunPowerShell.bat Scripts\GS_Client_DetectNewGame.ps1`
+- **Çalıştırma**: `GS_Client_DetectNewGame.bat`
+
+### Claude AI Analyzer: GS_Core_ClaudeAnalyzer.ps1
+- **Amaç**: Tespit edilen değişiklikleri akıllıca filtreler
+- **İşlevi**:
+  - Essential dosyaları belirler
+  - Temp/Cache/Logs otomatik filtreler
+  - Program-özel optimizasyon yapar
+  - Confidence score hesaplar
+- **Özellikler**: Verbose mod ile Claude'un düşünce süreci görülebilir
 
 ### Server Deployment: GS_Server_DeployToC.bat/ps1  
 - **Amaç**: GameSet paketlerini server C: sürücüsüne deploy eder
@@ -107,41 +127,115 @@ Client'lar (Diskless)
 ### Core Modules
 - **GS_Core_SmartDetector.ps1**: Pattern-based tespit motoru
 - **GS_Core_SymlinkManager.ps1**: Symlink oluşturma ve onarım
+- **GS_Core_ClaudeAnalyzer.ps1**: Claude AI filtreleme ve analiz modülü
+- **GS_Core_Config.ps1**: Merkezi konfigürasyon yönetimi
 - **GS_RunPowerShell.bat**: ExecutionPolicy bypass helper
 
-## Yeni Oyun Ekleme Süreci (Client-Based)
+## Yeni Oyun/Ayar Ekleme Süreci (Claude AI Destekli)
+
+### Mod Seçenekleri
+1. **Yeni Program/Oyun Kurulumu**: Tam tespit modu
+2. **Ayar Değişikliği**: Sadece config dosyaları (Edge, Discord vb.)
+3. **Windows Ayarı**: Sistem ayar değişiklikleri
 
 ### Adım 1: Client'ta Tespit Başlat
 ```batch
 GS_Client_DetectNewGame.bat
 ```
 
-### Adım 2: Oyun Adını Girin
+### Adım 2: Mod Seçimi
 ```
-Oyun adini girin: Valorant
+Kullanim Secenekleri:
+  1. Yeni program/oyun kurulumu
+  2. Ayar degisikligi (Edge, Discord vb.)
+  3. Windows ayar degisikligi
+
+Seciminiz (1-3): 2
 ```
 
-### Adım 3: Oyunu Client'a Kurun
-1. Launcher'ı açın (Riot Client)
-2. Valorant'ı E: sürücüsüne kurulum başlatın
-3. Kurulum %5-10'a gelince script'e dönün
-4. Enter'a basarak snapshot alın
+### Adım 3: Paket Adı ve Verbose Modu
+```
+Paket adi girin: EdgeGoogle
+Detayli cikti (Claude AI aciklarini gor) istiyor musunuz? (E/H): E
+```
 
-### Adım 4: Otomatik GameSet Paketi
+### Adım 4: Değişiklik Yapın
+1. Programı/Uygulamayı AÇIN
+2. İstediğiniz ayarları DEĞİŞTİRİN
+3. Ayarları KAYDEDIN (önemli!)
+4. Programı AÇIK bırakın
+5. Enter'a basarak devam edin
+
+### Adım 5: Claude AI Analizi ve Paket Oluşturma
 Script otomatik olarak:
-- Pattern database ile değişiklikleri tespit eder
-- `ValorantSet` klasörü oluşturur
+- C: sürücüsünde değişiklikleri tespit eder
+- Temp/Cache/Logs klasörlerini otomatik filtreler
+- **Claude AI** ile akıllı analiz yapar:
+  - Essential dosyaları belirler
+  - Gereksiz dosyaları exclude eder
+  - Confidence score hesaplar
+  - Program-özel optimizasyon yapar
+- `EdgeGoogleSet` klasörü oluşturur
 - Registry'yi `registry.reg` olarak export eder  
-- Kritik dosyaları `Files\` altına organize eder
+- Sadece gerekli dosyaları `Files\` altına kopyalar
 - `config.json` ile paket konfigürasyonu oluşturur
 
-### Adım 5: Server'a Deploy
-```batch
-GS_Server_DeployToC.bat ValorantSet
+#### Claude AI Verbose Çıktı Örneği:
+```
+[CLAUDE] Analiz istegi hazirlandi
+[CLAUDE] Toplam degisiklik: 47
+[CLAUDE] Claude'a sorgu gonderiliyor...
+  [+] Essential: User Data
+  [+] Essential: Default
+  [-] Exclude: Temp
+  [-] Exclude: Cache
+  [-] Exclude: Code Cache
+[CLAUDE] Analiz tamamlandi!
+[CLAUDE] Essential: 2 klasor
+[CLAUDE] Excluded: 45 klasor
+[CLAUDE] Confidence: 95%
+[CLAUDE] Reasoning: Edge settings change detected. Only user preferences and profile data are essential.
 ```
 
-### Adım 6: Client'larda Test
+### Adım 6: Server'a Deploy
+```batch
+GS_Server_DeployToC.bat EdgeGoogleSet
+```
+
+### Adım 7: Client'larda Test
 Client'ları restart edin, AutoLoader otomatik yükleyecek!
+
+## Claude AI Entegrasyonu Detayları
+
+### Akıllı Filtreleme Özellikleri
+
+#### Otomatik Filtrelenen Klasörler:
+- Temp, temp, TempFiles, TemporaryFiles
+- Cache, cache, Caches, CachedData, CachedFiles
+- Logs, logs, CrashDumps, CrashReports
+- GPUCache, Code Cache, Service Worker
+- blob_storage, webrtc_event_logs
+- BrowserMetrics, History, Cookies
+
+#### Essential Pattern'ler:
+- Preferences, Settings, Config
+- Profiles, User Data, LocalStorage
+- SavedGames, IndexedDB
+- Session Storage
+
+#### Program-Özel Optimizasyonlar:
+- **Edge**: Sadece User Data ve Default profil
+- **Discord**: Discord klasörü ve ayarlar
+- **Steam**: steamapps ve userdata
+- **Games**: Save dosyaları ve config
+
+### Claude AI Confidence Scoring
+- **95%**: Program-özel analiz (Edge, Discord vb.)
+- **90%**: Bilinen launcher pattern'leri
+- **85%**: Ayar değişiklikleri
+- **75%**: Genel kurulum
+
+Yüksek confidence (>80%) durumunda sadece essential dosyalar alınır.
 
 ## Desteklenen Oyunlar
 
@@ -215,6 +309,20 @@ GS_Tools_GameDoctor.bat OyunAdi -AutoFix
 2. Launcher'ı manuel kurun
 3. Tekrar tespit çalıştırın
 
+## Troubleshooting - Claude AI
+
+### Problem: Claude analizi çok yavaş
+**Çözüm**: Verbose modu kapatın
+```batch
+Detayli cikti istiyor musunuz? (E/H): H
+```
+
+### Problem: Claude çok fazla dosya filtreliyor
+**Çözüm**: Manuel olarak config.json'a ekleyin veya confidence threshold'u düşürün
+
+### Problem: Claude analizi başarısız
+**Çözüm**: Script otomatik fallback yapar, tüm değişiklikler korunur
+
 ## Teknik Detaylar
 
 ### Pattern-Based Detection
@@ -222,6 +330,12 @@ GS_Tools_GameDoctor.bat OyunAdi -AutoFix
 - AI gerektirmez, offline çalışır
 - Hızlı ve güvenilir tespit
 - Registry, klasör ve servis pattern'leri
+
+### Claude AI Integration
+- Akıllı filtreleme ve analiz
+- Program-özel optimizasyonlar
+- Confidence scoring sistemi
+- Verbose mod ile detaylı çıktı
 
 ### Portable GameSet Paketleri
 - Her oyun kendi Set klasöründe
@@ -276,15 +390,23 @@ GS_Tools_GameDoctor.bat OyunAdi -Detailed > report.txt
 
 ## Changelog
 
+### v3.0 (2025-01-18) - Claude AI Edition
+- Claude AI entegrasyonu ile akıllı filtreleme
+- Otomatik Temp/Cache/Logs filtreleme
+- C: sürücü odaklı tarama
+- Verbose AI analiz modu
+- Confidence scoring sistemi
+- Program-özel optimizasyonlar
+- Gelişmiş exclude pattern'leri
+
 ### v2.0 (2025-01-16)
-- Pattern-based tespit sistemi (AI yerine)
-- Client-based detection (server GPU sorunu çözümü)
+- Pattern-based tespit sistemi
+- Client-based detection
 - Portable GameSet paketleri
 - Deploy-once mekanizması
 - Game Doctor diagnostic tool
 - PowerShell ExecutionPolicy bypass
 - Symlink Manager modülü
-- BAT wrapper'lar ile kolay kullanım
 
 ### v1.0 (2025-01-14)
 - İlk versiyon

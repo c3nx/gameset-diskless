@@ -317,15 +317,16 @@ function Add-GamePattern {
     }
 }
 
-# Export functions
-Export-ModuleMember -Function @(
-    'Load-GamePatterns',
-    'Detect-Launcher',
-    'Detect-Game',
-    'Analyze-FileImportance',
-    'Check-AntiCheatRequirement',
-    'Get-LauncherExecutablePath',
-    'Get-FolderType',
-    'Filter-GameChanges',
-    'Add-GamePattern'
-)
+# Note: Export-ModuleMember only works inside modules (.psm1)
+# Since this is a .ps1 file, functions are automatically available when dot-sourced
+# Export-ModuleMember -Function @(
+#     'Load-GamePatterns',
+#     'Detect-Launcher',
+#     'Detect-Game',
+#     'Analyze-FileImportance',
+#     'Check-AntiCheatRequirement',
+#     'Get-LauncherExecutablePath',
+#     'Get-FolderType',
+#     'Filter-GameChanges',
+#     'Add-GamePattern'
+# )

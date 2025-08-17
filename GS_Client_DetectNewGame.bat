@@ -1,7 +1,7 @@
 @echo off
 REM GS_Client_DetectNewGame.bat
-REM Client'ta yeni oyun tespit ve paketleme
-REM PowerShell ExecutionPolicy bypass ile calistirir
+REM Sistem degisikliklerini tespit ve paketleme
+REM Launcher bagimsiz, environment variable destekli
 
 setlocal enabledelayedexpansion
 
@@ -9,26 +9,50 @@ REM Config loader'i cagir
 call "%~dp0GS_LoadConfig.bat"
 
 echo ========================================
-echo    GameSet - Yeni Oyun Tespit (Client)
+echo    GameSet - Degisiklik Tespit Araci
 echo ========================================
 echo.
+echo Kullanim Secenekleri:
+echo   1. Yeni program/oyun kurulumu
+echo   2. Ayar degisikligi (Edge, Discord vb.)
+echo   3. Windows ayar degisikligi
+echo.
 
-REM Oyun adi al
-set /p GAMENAME="Oyun adini girin (ornek: Valorant, Fortnite, CSGO): "
+REM Mod secimi
+set /p MODE="Seciminiz (1-3): "
 
-if "%GAMENAME%"=="" (
-    echo [HATA] Oyun adi bos olamaz!
+if "%MODE%"=="2" (
+    set SETTINGS_FLAG=-SettingsOnly
+    echo.
+    echo [MOD] Ayar degisikligi modu secildi
+) else if "%MODE%"=="3" (
+    set SETTINGS_FLAG=-SettingsOnly
+    echo.
+    echo [MOD] Windows ayar modu secildi
+) else (
+    set SETTINGS_FLAG=
+    echo.
+    echo [MOD] Tam tespit modu secildi
+)
+
+echo.
+
+REM Isim al
+set /p NAME="Paket adi girin (ornek: Edge, Discord, Valorant): "
+
+if "%NAME%"=="" (
+    echo [HATA] Isim bos olamaz!
     pause
     exit /b 1
 )
 
 echo.
-echo [INFO] Oyun: %GAMENAME%
-echo [INFO] PowerShell scripti baslatiliyor...
+echo [INFO] Paket: %NAME%
+echo [INFO] Script baslatiliyor...
 echo.
 
-REM PowerShell scriptini calistir (ExecutionPolicy Bypass ile)
-powershell.exe -ExecutionPolicy Bypass -NoProfile -File "%ScriptsPath%\GS_Client_DetectNewGame.ps1" -GameName "%GAMENAME%"
+REM PowerShell scriptini calistir
+powershell.exe -ExecutionPolicy Bypass -NoProfile -File "%ScriptsPath%\GS_Client_DetectChanges.ps1" -Name "%NAME%" %SETTINGS_FLAG%
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
