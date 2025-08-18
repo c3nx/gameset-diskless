@@ -207,7 +207,24 @@ Please respond with a JSON object containing:
     Write-Host "[CLAUDE] Analiz tamamlandi!" -ForegroundColor Green
     Write-Host "[CLAUDE] Essential: $($result.essential_folders.Count) klasor" -ForegroundColor White
     if ($RegistryKeys.Count -gt 0) {
-        Write-Host "[CLAUDE] Registry: $($RegistryKeys.Count) key analiz edildi" -ForegroundColor White
+        Write-Host "[CLAUDE] Registry: $($RegistryKeys.Count) degisiklik analiz edildi" -ForegroundColor White
+        
+        # Registry analiz detaylari
+        if ($VerboseOutput -and $RegistryKeys.Count -gt 0) {
+            Write-Host ""
+            Write-Host "[CLAUDE] Registry Analizi:" -ForegroundColor Cyan
+            foreach ($regChange in $RegistryKeys[0..([Math]::Min(5, $RegistryKeys.Count-1))]) {
+                $shortKey = $regChange.Key -replace "HKEY_CURRENT_USER", "HKCU" -replace "HKEY_LOCAL_MACHINE", "HKLM"
+                if ($regChange.Value) {
+                    Write-Host "  - $shortKey\$($regChange.Value) ($($regChange.Type))" -ForegroundColor Gray
+                } else {
+                    Write-Host "  - $shortKey ($($regChange.Type))" -ForegroundColor Gray
+                }
+            }
+            if ($RegistryKeys.Count -gt 5) {
+                Write-Host "  ... ve $($RegistryKeys.Count - 5) diger degisiklik" -ForegroundColor Gray
+            }
+        }
     }
     Write-Host "[CLAUDE] Excluded: $($result.exclude_folders.Count) klasor" -ForegroundColor White
     Write-Host "[CLAUDE] Confidence: $([math]::Round($result.confidence * 100))%" -ForegroundColor White

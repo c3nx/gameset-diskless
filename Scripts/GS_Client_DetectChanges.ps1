@@ -90,6 +90,148 @@ $beforeSnapshot = @{
     Services = @()
 }
 
+# Registry snapshot fonksiyonlari
+function Get-RegistrySnapshot {
+    param(
+        [string[]]$Paths
+    )
+    
+    $snapshot = @{}
+    
+    foreach ($path in $Paths) {
+        if (Test-Path $path) {
+            try {
+                # Tum alt key'leri ve value'lari oku
+                $key = Get-Item $path -ErrorAction SilentlyContinue
+                if ($key) {
+                    $snapshot[$path] = @{
+                        Values = @{}
+                        SubKeys = @()
+                    }
+                    
+                    # Value'lari oku
+                    foreach ($valueName in $key.GetValueNames()) {
+                        $snapshot[$path].Values[$valueName] = $key.GetValue($valueName)
+                    }
+                    
+                    # Alt key'leri recursive oku (max 2 level)
+                    $subKeys = Get-ChildItem $path -ErrorAction SilentlyContinue | Select-Object -First 20
+                    foreach ($subKey in $subKeys) {
+                        $subPath = $subKey.PSPath -replace "Microsoft.PowerShell.Core\\Registry::", ""
+                        $snapshot[$path].SubKeys += $subPath
+                        
+                        # Alt key'in value'larini da oku
+                        if (Test-Path $subKey.PSPath) {
+                            $snapshot[$subPath] = @{
+                                Values = @{}
+                            }
+                            foreach ($valueName in $subKey.GetValueNames()) {
+                                $snapshot[$subPath].Values[$valueName] = $subKey.GetValue($valueName)
+                            }
+                        }
+                    }
+                }
+            } catch {
+                if ($DetailedOutput) {
+                    Write-Host "  [!] Registry okunamadi: $path" -ForegroundColor DarkGray
+                }
+            }
+        }
+    }
+    
+    return $snapshot
+}
+
+function Compare-RegistrySnapshots {
+    param(
+        [hashtable]$Before,
+        [hashtable]$After
+    )
+    
+    $changes = @{
+        Added = @{}
+        Modified = @{}
+        Deleted = @{}
+    }
+    
+    # After'da olup Before'da olmayanlari bul (Added)
+    foreach ($key in $After.Keys) {
+        if (-not $Before.ContainsKey($key)) {
+            $changes.Added[$key] = $After[$key]
+        } else {
+            # Value'lari karsilastir
+            foreach ($valueName in $After[$key].Values.Keys) {
+                if (-not $Before[$key].Values.ContainsKey($valueName)) {
+                    # Yeni value
+                    if (-not $changes.Modified.ContainsKey($key)) {
+                        $changes.Modified[$key] = @{ Values = @{} }
+                    }
+                    $changes.Modified[$key].Values[$valueName] = $After[$key].Values[$valueName]
+                } elseif ($Before[$key].Values[$valueName] -ne $After[$key].Values[$valueName]) {
+                    # Degismis value
+                    if (-not $changes.Modified.ContainsKey($key)) {
+                        $changes.Modified[$key] = @{ Values = @{} }
+                    }
+                    $changes.Modified[$key].Values[$valueName] = @{
+                        Old = $Before[$key].Values[$valueName]
+                        New = $After[$key].Values[$valueName]
+                    }
+                }
+            }
+        }
+    }
+    
+    # Before'da olup After'da olmayanlari bul (Deleted) - ayar degisikligi icin ignore
+    if (-not $SettingsOnly) {
+        foreach ($key in $Before.Keys) {
+            if (-not $After.ContainsKey($key)) {
+                $changes.Deleted[$key] = $Before[$key]
+            }
+        }
+    }
+    
+    return $changes
+}
+
+# Program-ozel kritik registry path'leri
+$criticalRegistryPaths = @{
+    "Edge" = @(
+        "HKCU:\Software\Microsoft\Edge\PreferenceMACs\Default",
+        "HKCU:\Software\Microsoft\Edge\Defaults",
+        "HKCU:\Software\Classes\MSEdgeHTM"
+    )
+    "Discord" = @(
+        "HKCU:\Software\Discord",
+        "HKCU:\Software\DiscordPTB"
+    )
+    "Steam" = @(
+        "HKCU:\Software\Valve\Steam",
+        "HKLM:\SOFTWARE\Valve\Steam"
+    )
+    "Default" = @(
+        "HKCU:\Software\$Name",
+        "HKLM:\SOFTWARE\$Name"
+    )
+}
+
+# Registry path'lerini belirle
+$registryPathsToMonitor = @()
+foreach ($pattern in $criticalRegistryPaths.Keys) {
+    if ($Name -match $pattern) {
+        $registryPathsToMonitor = $criticalRegistryPaths[$pattern]
+        break
+    }
+}
+if ($registryPathsToMonitor.Count -eq 0) {
+    $registryPathsToMonitor = $criticalRegistryPaths["Default"]
+}
+
+# Registry baseline snapshot
+if ($DetailedOutput) {
+    Write-Host "[i] Registry snapshot aliniyor..." -ForegroundColor Gray
+}
+$beforeSnapshot.Registry = Get-RegistrySnapshot -Paths $registryPathsToMonitor
+
 # Taranacak klasorler - Environment variable kullanalim (Sadece C: surucu)
 $scanPaths = @(
     @{Path = $env:APPDATA; Label = "APPDATA"},
@@ -168,6 +310,44 @@ $detectedChanges = @{
     Folders = @()
     Registry = @()
     Services = @()
+}
+
+# Registry After Snapshot
+Write-Host "[i] Registry degisiklikleri tespit ediliyor..." -ForegroundColor Cyan
+$afterSnapshot = @{
+    Registry = Get-RegistrySnapshot -Paths $registryPathsToMonitor
+}
+
+# Registry degisikliklerini karsilastir
+$registryChanges = Compare-RegistrySnapshots -Before $beforeSnapshot.Registry -After $afterSnapshot.Registry
+
+if ($DetailedOutput -and ($registryChanges.Modified.Count -gt 0 -or $registryChanges.Added.Count -gt 0)) {
+    Write-Host ""
+    Write-Host "[Registry Degisiklikleri]" -ForegroundColor Yellow
+    
+    if ($registryChanges.Modified.Count -gt 0) {
+        Write-Host "  Degisen key'ler:" -ForegroundColor White
+        foreach ($key in $registryChanges.Modified.Keys) {
+            $shortKey = $key -replace "HKEY_CURRENT_USER", "HKCU" -replace "HKEY_LOCAL_MACHINE", "HKLM"
+            Write-Host "    $shortKey" -ForegroundColor Gray
+            foreach ($valueName in $registryChanges.Modified[$key].Values.Keys) {
+                $value = $registryChanges.Modified[$key].Values[$valueName]
+                if ($value -is [hashtable] -and $value.ContainsKey("Old")) {
+                    Write-Host "      [$valueName] degisti" -ForegroundColor Green
+                } else {
+                    Write-Host "      [$valueName] eklendi" -ForegroundColor Green
+                }
+            }
+        }
+    }
+    
+    if ($registryChanges.Added.Count -gt 0) {
+        Write-Host "  Yeni key'ler:" -ForegroundColor White
+        foreach ($key in $registryChanges.Added.Keys) {
+            $shortKey = $key -replace "HKEY_CURRENT_USER", "HKCU" -replace "HKEY_LOCAL_MACHINE", "HKLM"
+            Write-Host "    $shortKey" -ForegroundColor Green
+        }
+    }
 }
 
 # Klasor degisikliklerini bul
@@ -373,42 +553,85 @@ foreach ($change in $detectedChanges.Folders) {
 
 Write-Host "[OK] Dosyalar kopyalandi" -ForegroundColor Green
 
-# STEP 6: Registry export
+# STEP 6: Registry export - SADECE DEGISEN KEY'LER
 Write-Host ""
-Write-Host "[5/6] Registry export ediliyor..." -ForegroundColor Green
+Write-Host "[5/6] Registry export ediliyor (sadece degisen key'ler)..." -ForegroundColor Green
 
 $registryContent = "Windows Registry Editor Version 5.00`r`n`r`n"
-$registryContent += "; GameSet - $Name Registry Export`r`n"
+$registryContent += "; GameSet - $Name Registry Export (Optimized)`r`n"
 $registryContent += "; Type: $detectedType`r`n"
 $registryContent += "; Created: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')`r`n"
 $registryContent += "; Computer: $env:COMPUTERNAME`r`n"
-$registryContent += "; User: $env:USERNAME`r`n`r`n"
+$registryContent += "; User: $env:USERNAME`r`n"
+$registryContent += "; Only changed keys exported`r`n`r`n"
 
 $exportedKeys = @()
+$exportedCount = 0
 
-# Genel registry lokasyonlari
-$registryPaths = @(
-    "HKCU:\Software\$Name",
-    "HKLM:\SOFTWARE\$Name",
-    "HKLM:\SOFTWARE\WOW6432Node\$Name"
-)
-
-# Eger bilinen bir uygulama ise ozel lokasyonlar ekle
-if ($Name -match "Edge") {
-    $registryPaths += "HKCU:\Software\Microsoft\Edge"
-} elseif ($Name -match "Discord") {
-    $registryPaths += "HKCU:\Software\Discord"
-} elseif ($Name -match "Steam") {
-    $registryPaths += "HKLM:\SOFTWARE\Valve\Steam"
-}
-
-foreach ($regPath in $registryPaths) {
-    if (Test-Path $regPath) {
-        $cleanPath = $regPath -replace ":", ""
-        Write-Host "  Export: $cleanPath" -ForegroundColor Gray
+# Degisen registry key'leri export et
+if ($registryChanges.Modified.Count -gt 0 -or $registryChanges.Added.Count -gt 0) {
+    
+    # Modified keys
+    foreach ($key in $registryChanges.Modified.Keys) {
+        $cleanKey = $key -replace ":", ""
+        $cleanKey = $cleanKey -replace "HKEY_CURRENT_USER", "HKEY_CURRENT_USER" -replace "HKCU", "HKEY_CURRENT_USER"
+        $cleanKey = $cleanKey -replace "HKEY_LOCAL_MACHINE", "HKEY_LOCAL_MACHINE" -replace "HKLM", "HKEY_LOCAL_MACHINE"
         
+        Write-Host "  Export: $($key -replace 'HKEY_CURRENT_USER', 'HKCU') (degisen)" -ForegroundColor Gray
+        
+        # Key header
+        $registryContent += "[$cleanKey]`r`n"
+        
+        # Export changed values
+        foreach ($valueName in $registryChanges.Modified[$key].Values.Keys) {
+            $value = $registryChanges.Modified[$key].Values[$valueName]
+            
+            # Get the new value
+            $newValue = if ($value -is [hashtable] -and $value.ContainsKey("New")) {
+                $value.New
+            } else {
+                $value
+            }
+            
+            # Format value for .reg file
+            if ($valueName -eq "") {
+                $valueEntry = "@"
+            } else {
+                $valueEntry = "`"$valueName`""
+            }
+            
+            # Convert value to reg format
+            if ($newValue -eq $null) {
+                $registryContent += "$valueEntry=-`r`n"
+            } elseif ($newValue -is [string]) {
+                $escapedValue = $newValue -replace '"', '\"' -replace '\\', '\\'
+                $registryContent += "$valueEntry=`"$escapedValue`"`r`n"
+            } elseif ($newValue -is [int] -or $newValue -is [long]) {
+                $hexValue = "{0:x8}" -f $newValue
+                $registryContent += "$valueEntry=dword:$hexValue`r`n"
+            } elseif ($newValue -is [byte[]]) {
+                $hexBytes = ($newValue | ForEach-Object { "{0:x2}" -f $_ }) -join ","
+                $registryContent += "$valueEntry=hex:$hexBytes`r`n"
+            }
+        }
+        
+        $registryContent += "`r`n"
+        $exportedKeys += $key
+        $exportedCount++
+    }
+    
+    # Added keys
+    foreach ($key in $registryChanges.Added.Keys) {
+        $cleanKey = $key -replace ":", ""
+        $cleanKey = $cleanKey -replace "HKEY_CURRENT_USER", "HKEY_CURRENT_USER" -replace "HKCU", "HKEY_CURRENT_USER"
+        $cleanKey = $cleanKey -replace "HKEY_LOCAL_MACHINE", "HKEY_LOCAL_MACHINE" -replace "HKLM", "HKEY_LOCAL_MACHINE"
+        
+        Write-Host "  Export: $($key -replace 'HKEY_CURRENT_USER', 'HKCU') (yeni)" -ForegroundColor Gray
+        
+        # Export the entire new key
         $tempFile = [System.IO.Path]::GetTempFileName()
-        & reg export $cleanPath $tempFile /y 2>$null
+        $keyForExport = $key -replace ":", ""
+        & reg export $keyForExport $tempFile /y 2>$null
         
         if ($LASTEXITCODE -eq 0 -and (Test-Path $tempFile)) {
             $content = Get-Content $tempFile -Raw -Encoding Unicode
@@ -417,10 +640,19 @@ foreach ($regPath in $registryPaths) {
                 $registryContent += ($lines[2..($lines.Count-1)] -join "`r`n") + "`r`n`r`n"
             }
             Remove-Item $tempFile -Force
-            $exportedKeys += $cleanPath
         }
+        
+        $exportedKeys += $key
+        $exportedCount++
     }
+    
+    Write-Host "  [OK] $exportedCount degisen/yeni key export edildi" -ForegroundColor Green
+} else {
+    Write-Host "  [INFO] Registry degisikligi tespit edilmedi" -ForegroundColor Yellow
 }
+
+# Store in detected changes for later analysis
+$detectedChanges.Registry = $registryChanges
 
 $config.registry.keys = $exportedKeys
 
@@ -440,10 +672,28 @@ if ($detectedChanges.Folders.Count -gt 0 -or $exportedKeys.Count -gt 0) {
         try {
             $changeType = if ($SettingsOnly) { "Settings" } else { "Installation" }
             
+            # Prepare registry changes for Claude
+            $registryChangesList = @()
+            foreach ($key in $registryChanges.Modified.Keys) {
+                foreach ($valueName in $registryChanges.Modified[$key].Values.Keys) {
+                    $registryChangesList += @{
+                        Key = $key
+                        Value = $valueName
+                        Type = "Modified"
+                    }
+                }
+            }
+            foreach ($key in $registryChanges.Added.Keys) {
+                $registryChangesList += @{
+                    Key = $key
+                    Type = "Added"
+                }
+            }
+            
             # Claude analizini calistir
             $aiResult = & $analyzerPath `
                 -DetectedChanges $detectedChanges.Folders `
-                -RegistryChanges $exportedKeys `
+                -RegistryChanges $registryChangesList `
                 -ProgramName $Name `
                 -ChangeType $changeType `
                 -VerboseOutput:$DetailedOutput
