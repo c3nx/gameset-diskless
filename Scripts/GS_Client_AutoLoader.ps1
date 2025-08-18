@@ -1,17 +1,17 @@
 ﻿# GS_Client_AutoLoader.ps1
-# $GameSetRoot\*Set klasorlerini tarayip client'a otomatik yukler
-# Client acildiginda calisir
+# Scans $GameSetRoot\*Set folders and auto-loads them to client
+# Runs when client starts
 
 param(
-    [switch]$Silent,        # Sessiz mod (otomatik baslangic icin)
-    [switch]$TestMode,      # Test modu (gercek islem yapmaz)
-    [string]$SpecificGame   # Sadece belirli bir oyunu yukle
+    [switch]$Silent,        # Silent mode (for automatic startup)
+    [switch]$TestMode,      # Test mode (no actual operations)
+    [string]$SpecificGame   # Load only specific game
 )
 
-# Encoding ayari
+# Encoding setting
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# Config module'u yukle
+# Load config module
 . "$PSScriptRoot\GS_Core_Config.ps1"
 
 if (-not $Silent) {
@@ -22,7 +22,7 @@ if (-not $Silent) {
     Write-Host ""
 }
 
-# Log fonksiyonu
+# Log function
 function Write-Log {
     param(
         [string]$Message,
@@ -52,23 +52,23 @@ function Write-Log {
 }
 
 Write-Log "========================================" "INFO"
-Write-Log "GameSet Client Loader baslatildi" "INFO"
+Write-Log "GameSet Client Loader started" "INFO"
 Write-Log "Computer: $env:COMPUTERNAME" "INFO"
 Write-Log "User: $env:USERNAME" "INFO"
 if ($TestMode) {
-    Write-Log "[TEST MODU] Gercek islem yapilmayacak" "WARN"
+    Write-Log "[TEST MODE] No actual operations will be performed" "WARN"
 }
 
-# $GameSetRoot mount edilmis mi kontrol et
+# Check if $GameSetRoot is mounted
 if (-not (Test-Path "$GameSetRoot")) {
-    Write-Log "[HATA] $GameSetRoot bulunamadi! Network drive mount edilmemis olabilir." "ERROR"
+    Write-Log "[ERROR] $GameSetRoot not found! Network drive may not be mounted." "ERROR"
     if (-not $Silent) {
-        Read-Host "Devam etmek icin Enter'a basin"
+        Read-Host "Press Enter to continue"
     }
     exit 1
 }
 
-# Tum *Set klasorlerini bul
+# Find all *Set folders
 if ($SpecificGame) {
     if (-not $SpecificGame.EndsWith("Set")) {
         $SpecificGame = "$($SpecificGame)Set"
@@ -79,28 +79,28 @@ if ($SpecificGame) {
 }
 
 if ($setFolders.Count -eq 0) {
-    Write-Log "[UYARI] Hicbir GameSet paketi bulunamadi!" "WARN"
+    Write-Log "[WARNING] No GameSet packages found!" "WARN"
     if (-not $Silent) {
-        Read-Host "Devam etmek icin Enter'a basin"
+        Read-Host "Press Enter to continue"
     }
     exit 0
 }
 
-Write-Log "[INFO] $($setFolders.Count) GameSet paketi bulundu" "INFO"
+Write-Log "[INFO] $($setFolders.Count) GameSet packages found" "INFO"
 Write-Log "" "INFO"
 
 $totalLoaded = 0
 $totalSkipped = 0
 $totalErrors = 0
 
-# Her GameSet'i yukle
+# Load each GameSet
 foreach ($setFolder in $setFolders) {
     $configPath = "$($setFolder.FullName)\config.json"
     $registryPath = "$($setFolder.FullName)\registry.reg"
     $filesPath = "$($setFolder.FullName)\Files"
     
     if (-not (Test-Path $configPath)) {
-        Write-Log "[HATA] Config bulunamadi: $($setFolder.Name)" "ERROR"
+        Write-Log "[ERROR] Config not found: $($setFolder.Name)" "ERROR"
         $totalErrors++
         continue
     }
@@ -108,26 +108,26 @@ foreach ($setFolder in $setFolders) {
     try {
         $config = Get-Content $configPath -Raw | ConvertFrom-Json
     } catch {
-        Write-Log "[HATA] Config okunamadi: $($setFolder.Name) - $_" "ERROR"
+        Write-Log "[ERROR] Could not read config: $($setFolder.Name) - $_" "ERROR"
         $totalErrors++
         continue
     }
     
     Write-Log "========================================" "INFO"
-    Write-Log "[$($config.gameName)] Yukleniyor..." "OK"
+    Write-Log "[$($config.gameName)] Loading..." "OK"
     Write-Log "Launcher: $($config.launcher)" "INFO"
-    Write-Log "Versiyon: $($config.setVersion)" "INFO"
+    Write-Log "Version: $($config.setVersion)" "INFO"
     
-    # Client marker - bu oyun zaten yuklendi mi?
+    # Client marker - has this game already been loaded?
     $clientMarker = "$env:TEMP\GameSet_Loaded_$($config.gameName).marker"
     
     if (Test-Path $clientMarker) {
         $lastLoad = Get-Content $clientMarker
         $lastLoadDate = [DateTime]::ParseExact($lastLoad.Split("|")[0], "yyyy-MM-dd HH:mm:ss", $null)
         
-        # Son 24 saat icinde yuklenmis mi?
+        # Loaded in last 24 hours?
         if ($lastLoadDate -gt (Get-Date).AddHours(-24)) {
-            Write-Log "  [SKIP] Son 24 saat icinde zaten yuklendi" "INFO"
+            Write-Log "  [SKIP] Already loaded in last 24 hours" "INFO"
             $totalSkipped++
             continue
         }
@@ -135,18 +135,18 @@ foreach ($setFolder in $setFolders) {
     
     $loadSuccess = $true
     
-    # 1. Registry import et
+    # 1. Import registry
     if (Test-Path $registryPath) {
-        Write-Log "  [1/3] Registry import ediliyor..." "INFO"
+        Write-Log "  [1/3] Importing registry..." "INFO"
         
         if (-not $TestMode) {
-            # Registry dosyasini kontrol et
+            # Check registry file
             $regContent = Get-Content $registryPath -Raw
             if ($regContent -match "Windows Registry Editor") {
                 $result = reg import $registryPath /f 2>&1
                 
                 if ($LASTEXITCODE -eq 0) {
-                    Write-Log "    [OK] Registry yuklendi ($($config.registry.keys.Count) key)" "OK"
+                    Write-Log "    [OK] Registry loaded ($($config.registry.keys.Count) keys)" "OK"
                 } else {
                     Write-Log "    [HATA] Registry import basarisiz: $result" "ERROR"
                     $loadSuccess = $false

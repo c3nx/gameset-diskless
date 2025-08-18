@@ -1,24 +1,24 @@
 # GS_Core_ClaudeAnalyzer.ps1
-# Claude AI entegrasyonu ile akilli degisiklik analizi
-# Claude API kullanarak gereksiz dosyalari filtreler
+# Intelligent change analysis with Claude AI integration
+# Filters unnecessary files using Claude API
 
 param(
     [Parameter(Mandatory=$false)]
-    [array]$DetectedChanges = @(),  # Tespit edilen klasor degisiklikleri
+    [array]$DetectedChanges = @(),  # Detected folder changes
     
     [Parameter(Mandatory=$false)]
-    [array]$RegistryChanges = @(),  # Tespit edilen registry degisiklikleri
+    [array]$RegistryChanges = @(),  # Detected registry changes
     
     [Parameter(Mandatory=$true)]
-    [string]$ProgramName,  # Program/Oyun adi
+    [string]$ProgramName,  # Program/Game name
     
     [Parameter(Mandatory=$true)]
-    [string]$ChangeType,  # "Installation" veya "Settings"
+    [string]$ChangeType,  # "Installation" or "Settings"
     
-    [switch]$VerboseOutput  # Detayli cikti
+    [switch]$VerboseOutput  # Detailed output
 )
 
-# Encoding ayari
+# Encoding setting
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 function Invoke-ClaudeAnalysis {
@@ -30,11 +30,11 @@ function Invoke-ClaudeAnalysis {
     )
     
     Write-Host "`n========================================" -ForegroundColor Magenta
-    Write-Host "       CLAUDE AI ANALIZI BASLIYOR      " -ForegroundColor Magenta
+    Write-Host "      CLAUDE AI ANALYSIS STARTING      " -ForegroundColor Magenta
     Write-Host "========================================" -ForegroundColor Magenta
     Write-Host ""
     
-    # Degisiklikleri gruplara ayir
+    # Group changes by category
     $groupedChanges = @{
         AppData = @()
         LocalAppData = @()
@@ -63,7 +63,7 @@ function Invoke-ClaudeAnalysis {
         }
     }
     
-    # Claude'a soracagimiz prompt'u hazirla
+    # Prepare prompt for Claude
     $prompt = @"
 Analyzing changes for: $Name
 Type: $Type
@@ -85,7 +85,7 @@ IMPORTANT RULES:
 Changes detected:
 "@
     
-    # Her grup icin degisiklikleri ekle
+    # Add changes for each group
     foreach ($group in $groupedChanges.GetEnumerator()) {
         if ($group.Value.Count -gt 0) {
             $prompt += "`n`n$($group.Key) ($($group.Value.Count) items):"
@@ -114,13 +114,13 @@ Please respond with a JSON object containing:
 "@
     
     if ($VerboseOutput) {
-        Write-Host "[CLAUDE] Analiz istegi hazirlandi" -ForegroundColor Cyan
-        Write-Host "[CLAUDE] Toplam degisiklik: $($Changes.Count)" -ForegroundColor Cyan
-        Write-Host "[CLAUDE] Claude'a sorgu gonderiliyor..." -ForegroundColor Yellow
+        Write-Host "[CLAUDE] Analysis request prepared" -ForegroundColor Cyan
+        Write-Host "[CLAUDE] Total changes: $($Changes.Count)" -ForegroundColor Cyan
+        Write-Host "[CLAUDE] Sending query to Claude..." -ForegroundColor Yellow
     }
     
-    # Claude API'yi simule et (gercek entegrasyon icin API key gerekli)
-    # Su an icin akilli pattern-based filtreleme yapalim
+    # Simulate Claude API (real integration requires API key)
+    # Using intelligent pattern-based filtering for now
     
     $essentialPatterns = @(
         "Preferences", "Settings", "Config", "Profiles", "SavedGames",
@@ -140,7 +140,7 @@ Please respond with a JSON object containing:
         confidence = 0.0
     }
     
-    # Analiz yap
+    # Perform analysis
     foreach ($change in $Changes) {
         $folderName = if ($change.Name) { $change.Name } else { Split-Path $change.Path -Leaf }
         
@@ -176,10 +176,10 @@ Please respond with a JSON object containing:
         }
     }
     
-    # Ozel program analizi
+    # Program-specific analysis
     if ($Name -like "*Edge*" -and $Type -eq "Settings") {
         if ($RegistryKeys.Count -gt 0 -and $Changes.Count -eq 0) {
-            # Sadece registry degisikligi var
+            # Only registry changes present
             $result.essential_folders = @()
             $result.exclude_folders = @()
             $result.reasoning = "Edge settings change detected via registry only. No folder changes needed."
@@ -204,15 +204,15 @@ Please respond with a JSON object containing:
     }
     
     Write-Host ""
-    Write-Host "[CLAUDE] Analiz tamamlandi!" -ForegroundColor Green
-    Write-Host "[CLAUDE] Essential: $($result.essential_folders.Count) klasor" -ForegroundColor White
+    Write-Host "[CLAUDE] Analysis completed!" -ForegroundColor Green
+    Write-Host "[CLAUDE] Essential: $($result.essential_folders.Count) folders" -ForegroundColor White
     if ($RegistryKeys.Count -gt 0) {
-        Write-Host "[CLAUDE] Registry: $($RegistryKeys.Count) degisiklik analiz edildi" -ForegroundColor White
+        Write-Host "[CLAUDE] Registry: $($RegistryKeys.Count) changes analyzed" -ForegroundColor White
         
-        # Registry analiz detaylari
+        # Registry analysis details
         if ($VerboseOutput -and $RegistryKeys.Count -gt 0) {
             Write-Host ""
-            Write-Host "[CLAUDE] Registry Analizi:" -ForegroundColor Cyan
+            Write-Host "[CLAUDE] Registry Analysis:" -ForegroundColor Cyan
             foreach ($regChange in $RegistryKeys[0..([Math]::Min(5, $RegistryKeys.Count-1))]) {
                 $shortKey = $regChange.Key -replace "HKEY_CURRENT_USER", "HKCU" -replace "HKEY_LOCAL_MACHINE", "HKLM"
                 if ($regChange.Value) {
@@ -222,11 +222,11 @@ Please respond with a JSON object containing:
                 }
             }
             if ($RegistryKeys.Count -gt 5) {
-                Write-Host "  ... ve $($RegistryKeys.Count - 5) diger degisiklik" -ForegroundColor Gray
+                Write-Host "  ... and $($RegistryKeys.Count - 5) more changes" -ForegroundColor Gray
             }
         }
     }
-    Write-Host "[CLAUDE] Excluded: $($result.exclude_folders.Count) klasor" -ForegroundColor White
+    Write-Host "[CLAUDE] Excluded: $($result.exclude_folders.Count) folders" -ForegroundColor White
     Write-Host "[CLAUDE] Confidence: $([math]::Round($result.confidence * 100))%" -ForegroundColor White
     
     if ($VerboseOutput) {
@@ -244,7 +244,7 @@ function Filter-ChangesWithAI {
     )
     
     Write-Host ""
-    Write-Host "[FILTER] Claude analizine gore filtreleme..." -ForegroundColor Yellow
+    Write-Host "[FILTER] Filtering based on Claude analysis..." -ForegroundColor Yellow
     
     $filteredChanges = @()
     $excludedCount = 0
@@ -252,13 +252,13 @@ function Filter-ChangesWithAI {
     foreach ($change in $Changes) {
         $folderName = if ($change.Name) { $change.Name } else { Split-Path $change.Path -Leaf }
         
-        # Essential mi kontrol et
+        # Check if essential
         if ($folderName -in $Analysis.essential_folders) {
             $filteredChanges += $change
             continue
         }
         
-        # Exclude listesinde mi kontrol et  
+        # Check if in exclude list  
         if ($folderName -in $Analysis.exclude_folders) {
             $excludedCount++
             if ($VerboseOutput) {
@@ -267,23 +267,23 @@ function Filter-ChangesWithAI {
             continue
         }
         
-        # Ne essential ne exclude ise confidence'a gore karar ver
+        # If neither essential nor exclude, decide based on confidence
         if ($Analysis.confidence -gt 0.8) {
-            # Yuksek confidence - sadece essential'lari al
+            # High confidence - only take essentials
             $excludedCount++
         } else {
-            # Dusuk confidence - suplileri de al
+            # Low confidence - also take uncertain ones
             $filteredChanges += $change
         }
     }
     
-    Write-Host "[FILTER] Toplam: $($Changes.Count) -> Filtrelenmis: $($filteredChanges.Count)" -ForegroundColor Green
-    Write-Host "[FILTER] $excludedCount gereksiz klasor filtrelendi" -ForegroundColor Yellow
+    Write-Host "[FILTER] Total: $($Changes.Count) -> Filtered: $($filteredChanges.Count)" -ForegroundColor Green
+    Write-Host "[FILTER] $excludedCount unnecessary folders filtered" -ForegroundColor Yellow
     
     return $filteredChanges
 }
 
-# Ana islem
+# Main process
 try {
     Write-Host ""
     Write-Host "========================================" -ForegroundColor Cyan
@@ -295,13 +295,13 @@ try {
     Write-Host "Folder Changes: $($DetectedChanges.Count)" -ForegroundColor White
     Write-Host "Registry Changes: $($RegistryChanges.Count)" -ForegroundColor White
     
-    # Claude analizini calistir
+    # Run Claude analysis
     $analysis = Invoke-ClaudeAnalysis -Changes $DetectedChanges -RegistryKeys $RegistryChanges -Name $ProgramName -Type $ChangeType
     
-    # Degisiklikleri filtrele
+    # Filter changes
     $filteredChanges = Filter-ChangesWithAI -Changes $DetectedChanges -Analysis $analysis
     
-    # Sonuclari dondur
+    # Return results
     return @{
         FilteredChanges = $filteredChanges
         Analysis = $analysis
@@ -311,8 +311,8 @@ try {
     }
     
 } catch {
-    Write-Host "[HATA] Claude analizi sirasinda hata: $_" -ForegroundColor Red
-    Write-Host "[FALLBACK] Tum degisiklikler korunuyor" -ForegroundColor Yellow
+    Write-Host "[ERROR] Error during Claude analysis: $_" -ForegroundColor Red
+    Write-Host "[FALLBACK] Keeping all changes" -ForegroundColor Yellow
     
     return @{
         FilteredChanges = $DetectedChanges

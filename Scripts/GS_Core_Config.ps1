@@ -1,14 +1,14 @@
 # GS_Core_Config.ps1
-# GameSet merkezi konfigurasyon modulu
-# Tum PowerShell scriptleri tarafindan kullanilir
+# GameSet central configuration module
+# Used by all PowerShell scripts
 
-# Encoding ayari
+# Encoding setting
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# Config dosya yolu
+# Config file path
 $ConfigFile = Join-Path $PSScriptRoot "..\GameSet_Config.ini"
 
-# Varsayilan degerler
+# Default values
 $Global:GameSetConfig = @{
     GameSetDrive = "E:"
     GameSetRoot = "E:\GameSet"
@@ -26,7 +26,7 @@ $Global:GameSetConfig = @{
     RobocopyThreads = 16
 }
 
-# INI dosyasini parse et
+# Parse INI file
 function Read-IniFile {
     param(
         [Parameter(Mandatory=$true)]
@@ -37,15 +37,15 @@ function Read-IniFile {
     $section = ""
     
     if (-not (Test-Path $FilePath)) {
-        Write-Warning "[CONFIG] Config dosyasi bulunamadi: $FilePath"
-        Write-Warning "[CONFIG] Varsayilan degerler kullaniliyor"
+        Write-Warning "[CONFIG] Config file not found: $FilePath"
+        Write-Warning "[CONFIG] Using default values"
         return $ini
     }
     
     $content = Get-Content $FilePath
     
     foreach ($line in $content) {
-        # Comment ve bos satirlari atla
+        # Skip comments and empty lines
         if ($line -match '^\s*;' -or $line -match '^\s*$') {
             continue
         }
@@ -73,21 +73,21 @@ function Read-IniFile {
     return $ini
 }
 
-# Config'i yukle
+# Load config
 function Load-GameSetConfig {
     param(
         [string]$ConfigPath = $ConfigFile
     )
     
-    # INI dosyasini oku
+    # Read INI file
     $ini = Read-IniFile -FilePath $ConfigPath
     
-    # GameSetDrive'i al
+    # Get GameSetDrive
     if ($ini.ContainsKey("Paths") -and $ini["Paths"].ContainsKey("GameSetDrive")) {
         $Global:GameSetConfig.GameSetDrive = $ini["Paths"]["GameSetDrive"]
     }
     
-    # Diger path'leri GameSetDrive'a gore guncelle
+    # Update other paths based on GameSetDrive
     $drive = $Global:GameSetConfig.GameSetDrive
     $Global:GameSetConfig.GameSetRoot = "$drive\GameSet"
     $Global:GameSetConfig.JunkFilesRoot = "$drive\JunkFiles"
@@ -97,7 +97,7 @@ function Load-GameSetConfig {
     $Global:GameSetConfig.PatternsDB = "$($Global:GameSetConfig.DataPath)\GamePatterns.json"
     $Global:GameSetConfig.SystemConfig = "$($Global:GameSetConfig.DataPath)\config.json"
     
-    # Settings bolumu
+    # Settings section
     if ($ini.ContainsKey("Settings")) {
         foreach ($key in $ini["Settings"].Keys) {
             if ($Global:GameSetConfig.ContainsKey($key)) {
@@ -106,7 +106,7 @@ function Load-GameSetConfig {
         }
     }
     
-    # Performance bolumu
+    # Performance section
     if ($ini.ContainsKey("Performance")) {
         foreach ($key in $ini["Performance"].Keys) {
             if ($key -eq "RobocopyThreads") {
@@ -125,14 +125,14 @@ function Load-GameSetConfig {
     return $Global:GameSetConfig
 }
 
-# Config olustur (yoksa)
+# Create config (if not exists)
 function Initialize-GameSetConfig {
     if (-not (Test-Path $ConfigFile)) {
-        Write-Host "[CONFIG] Config dosyasi olusturuluyor: $ConfigFile" -ForegroundColor Yellow
+        Write-Host "[CONFIG] Creating config file: $ConfigFile" -ForegroundColor Yellow
         
         $defaultConfig = @"
 ; GameSet Configuration File
-; Bu dosyayi duzenleyerek GameSet'in calisacagi surucuyu degistirebilirsiniz
+; Edit this file to change the drive where GameSet operates
 
 [Paths]
 GameSetDrive=E:
@@ -149,15 +149,15 @@ RobocopyThreads=16
 "@
         
         $defaultConfig | Out-File $ConfigFile -Encoding UTF8
-        Write-Host "[CONFIG] Varsayilan config olusturuldu" -ForegroundColor Green
+        Write-Host "[CONFIG] Default config created" -ForegroundColor Green
     }
 }
 
-# Otomatik yukle
+# Auto load
 Initialize-GameSetConfig
 $config = Load-GameSetConfig
 
-# Global degiskenleri export et (diger scriptler icin)
+# Export global variables (for other scripts)
 $Global:GameSetDrive = $config.GameSetDrive
 $Global:GameSetRoot = $config.GameSetRoot
 $Global:JunkFilesRoot = $config.JunkFilesRoot
@@ -167,7 +167,7 @@ $Global:LogsPath = $config.LogsPath
 $Global:PatternsDB = $config.PatternsDB
 $Global:SystemConfig = $config.SystemConfig
 
-# Helper fonksiyonlar
+# Helper functions
 function Get-GameSetPath {
     param(
         [Parameter(Mandatory=$true)]
@@ -186,7 +186,7 @@ function Get-GameSetPath {
     }
 }
 
-# Config degistir ve kaydet
+# Change and save config
 function Set-GameSetDrive {
     param(
         [Parameter(Mandatory=$true)]
@@ -195,11 +195,11 @@ function Set-GameSetDrive {
     
     # Validate drive
     if ($NewDrive -notmatch '^[A-Z]:$' -and $NewDrive -notmatch '^\\\\') {
-        Write-Error "Gecersiz surucu: $NewDrive (Ornek: D: veya \\Server\Share)"
+        Write-Error "Invalid drive: $NewDrive (Example: D: or \\Server\Share)"
         return $false
     }
     
-    # INI dosyasini guncelle
+    # Update INI file
     $content = Get-Content $ConfigFile
     $newContent = @()
     $inPathsSection = $false
@@ -221,11 +221,11 @@ function Set-GameSetDrive {
         }
     }
     
-    # Dosyayi kaydet
+    # Save file
     $newContent | Out-File $ConfigFile -Encoding UTF8
     
-    Write-Host "[CONFIG] GameSetDrive degistirildi: $NewDrive" -ForegroundColor Green
-    Write-Host "[CONFIG] Yeni ayarlarin gecerli olmasi icin scriptleri yeniden baslatin" -ForegroundColor Yellow
+    Write-Host "[CONFIG] GameSetDrive changed to: $NewDrive" -ForegroundColor Green
+    Write-Host "[CONFIG] Restart scripts for new settings to take effect" -ForegroundColor Yellow
     
     return $true
 }

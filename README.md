@@ -1,4 +1,4 @@
-# GameSet Advanced v2.0 - Diskless Gaming Cafe Management System
+# GameSet Advanced v3.0 - Diskless Gaming Cafe Management System
 
 ## Overview
 
@@ -6,19 +6,24 @@ GameSet Advanced is a comprehensive management system for diskless gaming cafes,
 
 ## Key Features
 
-- **Pattern-Based Detection**: Fast, offline detection without AI
+- **Claude AI Integration (v3.0)**: Intelligent filtering of unnecessary files
+- **Registry Snapshot System**: Captures only changed registry keys
+- **Pattern-Based Detection**: Fast, offline detection
 - **Client-Based Detection**: Solves server GPU limitation
 - **Portable GameSet Packages**: Each game in its own Set folder
 - **Deploy-Once Mechanism**: Server C: deployment for UpdateSync
-- **Game Doctor**: Automatic problem detection and resolution
 - **PowerShell Bypass**: ExecutionPolicy issues auto-resolved with BAT wrappers
+- **Environment Variable Support**: User-independent paths (%APPDATA%, %LOCALAPPDATA%)
 
 ## Quick Start
 
 ### 1. Installation
 ```batch
-REM Run as Administrator
-GS_INSTALL.bat
+REM Clone or download to C:\GameSet
+git clone https://github.com/c3nx/gameset-diskless.git C:\GameSet
+
+REM Edit config if needed (default E: drive)
+notepad C:\GameSet\GameSet_Config.ini
 ```
 
 ### 2. Add New Game (on Client)
@@ -46,21 +51,22 @@ E:\GameSet\GS_Client_AutoLoader.bat
 
 ```
 gameset-diskless/
-├── GS_INSTALL.bat              # One-click installer
 ├── GS_Client_DetectNewGame.bat # Client game detection
 ├── GS_Server_DeployToC.bat     # Server deployment
 ├── GS_Client_AutoLoader.bat    # Client auto-loader
 ├── GS_Server_UpdateSync.bat    # Update synchronization
-├── GS_Tools_GameDoctor.bat     # Diagnostic tool
 ├── GS_RunPowerShell.bat        # PowerShell helper
+├── GS_LoadConfig.bat           # Config loader
+├── GameSet_Config.ini          # Main configuration
 ├── Scripts/                     # PowerShell scripts
-│   ├── GS_Client_DetectNewGame.ps1
-│   ├── GS_Server_DeployToC.ps1
-│   ├── GS_Client_AutoLoader.ps1
-│   ├── GS_Server_UpdateSync.ps1
-│   ├── GS_Tools_GameDoctor.ps1
-│   ├── GS_Core_SmartDetector.ps1
-│   └── GS_Core_SymlinkManager.ps1
+│   ├── GS_Client_DetectChanges.ps1  # Main detection script
+│   ├── GS_Server_DeployToC.ps1      # Server deployment
+│   ├── GS_Client_AutoLoader.ps1     # Client auto-loader
+│   ├── GS_Server_UpdateSync.ps1     # Update sync
+│   ├── GS_Core_Config.ps1           # Config module
+│   ├── GS_Core_SmartDetector.ps1    # Pattern detection
+│   ├── GS_Core_SymlinkManager.ps1   # Symlink management
+│   └── GS_Core_ClaudeAnalyzer.ps1   # Claude AI module
 └── Data/                        # Configuration files
     ├── GamePatterns.json        # Pattern database
     └── config.json              # System configuration
@@ -83,13 +89,16 @@ gameset-diskless/
 
 ## Troubleshooting
 
-Use Game Doctor for automatic diagnosis:
-```batch
-GS_Tools_GameDoctor.bat GameName -AutoFix
-```
+### Common Issues
+
+1. **PowerShell Execution Policy**: BAT wrappers automatically bypass this
+2. **Network Drive Not Found**: Ensure E: drive is mapped
+3. **Registry Changes Not Captured**: Run as Administrator
+4. **Symlinks Not Created**: Requires admin privileges
 
 ## Version History
 
+- **v3.0** (2025-01-18): Claude AI integration, registry snapshot system, English translation
 - **v2.0** (2025-01-16): Pattern-based system, client detection, portable packages
 - **v1.0** (2025-01-14): Initial release
 
@@ -102,4 +111,7 @@ Developed for diskless gaming cafes. Commercial use requires permission.
 Check log files for detailed information:
 - `E:\GameSet\Logs\detection.log`
 - `E:\GameSet\Logs\deployment.log`
-- `E:\GameSet\Logs\game_doctor.log`
+- `E:\GameSet\Logs\client_loader.log`
+
+For issues and feedback:
+- GitHub: https://github.com/c3nx/gameset-diskless/issues

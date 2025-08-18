@@ -47,12 +47,22 @@ if "%NAME%"=="" (
 )
 
 echo.
+
+REM Verbose mod sorusu
+set /p VERBOSE="Detayli cikti (Claude AI aciklarini gor) istiyor musunuz? (E/H): "
+set VERBOSE_FLAG=
+if /i "%VERBOSE%"=="E" (
+    set VERBOSE_FLAG=-DetailedOutput
+    echo [INFO] Detayli mod aktif - Claude AI analizi gorunur olacak
+)
+
+echo.
 echo [INFO] Paket: %NAME%
 echo [INFO] Script baslatiliyor...
 echo.
 
 REM PowerShell scriptini calistir
-powershell.exe -ExecutionPolicy Bypass -NoProfile -File "%ScriptsPath%\GS_Client_DetectChanges.ps1" -Name "%NAME%" %SETTINGS_FLAG%
+powershell.exe -ExecutionPolicy Bypass -NoProfile -File "%ScriptsPath%\GS_Client_DetectChanges.ps1" -Name "%NAME%" %SETTINGS_FLAG% %VERBOSE_FLAG%
 
 if %ERRORLEVEL% NEQ 0 (
     echo.

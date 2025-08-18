@@ -1,50 +1,50 @@
 # GS_Client_DetectChanges.ps1
-# Sistem degisikliklerini tespit edip portable GameSet paketi olusturur
-# Launcher bagimsiz, environment variable destekli
-# Calistirilmasi: GS_Client_DetectNewGame.bat uzerinden
+# Detects system changes and creates portable GameSet packages
+# Launcher independent, environment variable support
+# Execution: GS_Client_DetectNewGame.bat
 
 param(
     [Parameter(Mandatory=$true)]
-    [string]$Name,  # Paket adi (oyun, program veya ayar adi)
+    [string]$Name,  # Package name (game, program or settings name)
     
-    [switch]$SettingsOnly,  # Sadece ayar degisiklikleri icin
-    [switch]$DetailedOutput # Detayli cikti
+    [switch]$SettingsOnly,  # For settings changes only
+    [switch]$DetailedOutput # Detailed output
 )
 
-# Encoding ayari
+# Encoding setting
 [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
-# Config module'u yukle
+# Load config module
 . "$PSScriptRoot\GS_Core_Config.ps1"
 
 Clear-Host
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "   GameSet - Degisiklik Tespit Araci   " -ForegroundColor Cyan
+Write-Host "     GameSet - Change Detection Tool    " -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Paket: $Name" -ForegroundColor White
-Write-Host "Mod: $(if ($SettingsOnly) {'Ayar Degisikligi'} else {'Tam Tespit'})" -ForegroundColor White
+Write-Host "Package: $Name" -ForegroundColor White
+Write-Host "Mode: $(if ($SettingsOnly) {'Settings Change'} else {'Full Detection'})" -ForegroundColor White
 Write-Host ""
 
-# Pattern database yukle
+# Load pattern database
 if (-not (Test-Path $PatternsDB)) {
-    Write-Host "[HATA] GamePatterns.json bulunamadi!" -ForegroundColor Red
-    Write-Host "Konum: $PatternsDB" -ForegroundColor Gray
+    Write-Host "[ERROR] GamePatterns.json not found!" -ForegroundColor Red
+    Write-Host "Location: $PatternsDB" -ForegroundColor Gray
     exit 1
 }
 
 $patterns = Get-Content $PatternsDB -Raw | ConvertFrom-Json
 
-# GameSet klasor adi
+# GameSet folder name
 $setFolderName = "$($Name)Set"
 $outputPath = "$GameSetRoot\$setFolderName"
 
-# Output klasorunu olustur
+# Create output folder
 if (Test-Path $outputPath) {
-    Write-Host "[UYARI] $setFolderName klasoru zaten var" -ForegroundColor Yellow
-    $confirm = Read-Host "Uzerine yazilsin mi? (E/H)"
-    if ($confirm -ne "E") {
-        Write-Host "[IPTAL] Islem iptal edildi" -ForegroundColor Red
+    Write-Host "[WARNING] $setFolderName folder already exists" -ForegroundColor Yellow
+    $confirm = Read-Host "Overwrite? (Y/N)"
+    if ($confirm -ne "Y") {
+        Write-Host "[CANCELLED] Operation cancelled" -ForegroundColor Red
         exit
     }
     Remove-Item $outputPath -Recurse -Force
@@ -53,10 +53,10 @@ if (Test-Path $outputPath) {
 New-Item -Path $outputPath -ItemType Directory -Force | Out-Null
 New-Item -Path "$outputPath\Files" -ItemType Directory -Force | Out-Null
 
-Write-Host "[INFO] Paket klasoru: $outputPath" -ForegroundColor Gray
+Write-Host "[INFO] Package folder: $outputPath" -ForegroundColor Gray
 Write-Host ""
 
-# Progress gosterme fonksiyonu
+# Progress display function
 function Show-Progress {
     param(
         [string]$Activity,
@@ -77,11 +77,11 @@ function Show-Progress {
 
 # STEP 1: Baseline snapshot
 Write-Host "========================================" -ForegroundColor Yellow
-Write-Host "         ADIM 1: BASELINE SNAPSHOT     " -ForegroundColor Yellow
+Write-Host "         STEP 1: BASELINE SNAPSHOT     " -ForegroundColor Yellow
 Write-Host "========================================" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "[!] HENUZ HICBIR SEY YAPMAYIN!" -ForegroundColor Red
-Write-Host "[i] Sistem mevcut durumu kaydediliyor..." -ForegroundColor Cyan
+Write-Host "[!] DO NOT MAKE ANY CHANGES YET!" -ForegroundColor Red
+Write-Host "[i] Recording current system state..." -ForegroundColor Cyan
 Write-Host ""
 
 $beforeSnapshot = @{
@@ -90,7 +90,7 @@ $beforeSnapshot = @{
     Services = @()
 }
 
-# Registry snapshot fonksiyonlari
+# Registry snapshot functions
 function Get-RegistrySnapshot {
     param(
         [string[]]$Paths
@@ -101,7 +101,7 @@ function Get-RegistrySnapshot {
     foreach ($path in $Paths) {
         if (Test-Path $path) {
             try {
-                # Tum alt key'leri ve value'lari oku
+                # Read all subkeys and values
                 $key = Get-Item $path -ErrorAction SilentlyContinue
                 if ($key) {
                     $snapshot[$path] = @{
@@ -109,18 +109,18 @@ function Get-RegistrySnapshot {
                         SubKeys = @()
                     }
                     
-                    # Value'lari oku
+                    # Read values
                     foreach ($valueName in $key.GetValueNames()) {
                         $snapshot[$path].Values[$valueName] = $key.GetValue($valueName)
                     }
                     
-                    # Alt key'leri recursive oku (max 2 level)
+                    # Read subkeys recursively (max 2 levels)
                     $subKeys = Get-ChildItem $path -ErrorAction SilentlyContinue | Select-Object -First 20
                     foreach ($subKey in $subKeys) {
                         $subPath = $subKey.PSPath -replace "Microsoft.PowerShell.Core\\Registry::", ""
                         $snapshot[$path].SubKeys += $subPath
                         
-                        # Alt key'in value'larini da oku
+                        # Read subkey values as well
                         if (Test-Path $subKey.PSPath) {
                             $snapshot[$subPath] = @{
                                 Values = @{}
@@ -133,7 +133,7 @@ function Get-RegistrySnapshot {
                 }
             } catch {
                 if ($DetailedOutput) {
-                    Write-Host "  [!] Registry okunamadi: $path" -ForegroundColor DarkGray
+                    Write-Host "  [!] Could not read registry: $path" -ForegroundColor DarkGray
                 }
             }
         }
@@ -154,21 +154,21 @@ function Compare-RegistrySnapshots {
         Deleted = @{}
     }
     
-    # After'da olup Before'da olmayanlari bul (Added)
+    # Find keys in After but not in Before (Added)
     foreach ($key in $After.Keys) {
         if (-not $Before.ContainsKey($key)) {
             $changes.Added[$key] = $After[$key]
         } else {
-            # Value'lari karsilastir
+            # Compare values
             foreach ($valueName in $After[$key].Values.Keys) {
                 if (-not $Before[$key].Values.ContainsKey($valueName)) {
-                    # Yeni value
+                    # New value
                     if (-not $changes.Modified.ContainsKey($key)) {
                         $changes.Modified[$key] = @{ Values = @{} }
                     }
                     $changes.Modified[$key].Values[$valueName] = $After[$key].Values[$valueName]
                 } elseif ($Before[$key].Values[$valueName] -ne $After[$key].Values[$valueName]) {
-                    # Degismis value
+                    # Changed value
                     if (-not $changes.Modified.ContainsKey($key)) {
                         $changes.Modified[$key] = @{ Values = @{} }
                     }
@@ -181,7 +181,7 @@ function Compare-RegistrySnapshots {
         }
     }
     
-    # Before'da olup After'da olmayanlari bul (Deleted) - ayar degisikligi icin ignore
+    # Find keys in Before but not in After (Deleted) - ignore for settings changes
     if (-not $SettingsOnly) {
         foreach ($key in $Before.Keys) {
             if (-not $After.ContainsKey($key)) {
@@ -193,7 +193,7 @@ function Compare-RegistrySnapshots {
     return $changes
 }
 
-# Program-ozel kritik registry path'leri
+# Program-specific critical registry paths
 $criticalRegistryPaths = @{
     "Edge" = @(
         "HKCU:\Software\Microsoft\Edge\PreferenceMACs\Default",
@@ -214,7 +214,7 @@ $criticalRegistryPaths = @{
     )
 }
 
-# Registry path'lerini belirle
+# Determine registry paths
 $registryPathsToMonitor = @()
 foreach ($pattern in $criticalRegistryPaths.Keys) {
     if ($Name -match $pattern) {
@@ -228,11 +228,11 @@ if ($registryPathsToMonitor.Count -eq 0) {
 
 # Registry baseline snapshot
 if ($DetailedOutput) {
-    Write-Host "[i] Registry snapshot aliniyor..." -ForegroundColor Gray
+    Write-Host "[i] Taking registry snapshot..." -ForegroundColor Gray
 }
 $beforeSnapshot.Registry = Get-RegistrySnapshot -Paths $registryPathsToMonitor
 
-# Taranacak klasorler - Environment variable kullanalim (Sadece C: surucu)
+# Folders to scan - Using environment variables (C: drive only)
 $scanPaths = @(
     @{Path = $env:APPDATA; Label = "APPDATA"},
     @{Path = $env:LOCALAPPDATA; Label = "LOCALAPPDATA"},
@@ -243,7 +243,7 @@ $scanPaths = @(
     @{Path = "${env:ProgramFiles(x86)}"; Label = "PROGRAMFILESX86"}
 )
 
-# Sadece C: surucudeki path'leri filtrele
+# Filter only paths on C: drive
 $scanPaths = $scanPaths | Where-Object { $_.Path -like "C:*" }
 
 $i = 0
@@ -258,51 +258,51 @@ foreach ($scan in $scanPaths) {
     }
 }
 
-# Servisleri kaydet
+# Save services
 $beforeSnapshot.Services = Get-Service | Select-Object Name, Status, StartType
 
-Write-Host "[OK] Baseline snapshot alindi" -ForegroundColor Green
+Write-Host "[OK] Baseline snapshot taken" -ForegroundColor Green
 Write-Host ""
 
-# STEP 2: Kullanici degisiklik yapar
+# STEP 2: User makes changes
 Write-Host "========================================" -ForegroundColor Yellow
 if ($SettingsOnly) {
-    Write-Host "      ADIM 2: AYARLARI DEGISTIRIN      " -ForegroundColor Yellow
+    Write-Host "      STEP 2: CHANGE SETTINGS          " -ForegroundColor Yellow
 } else {
-    Write-Host "      ADIM 2: PROGRAMI KURUN/DEGISTIRIN" -ForegroundColor Yellow
+    Write-Host "    STEP 2: INSTALL/MODIFY PROGRAM     " -ForegroundColor Yellow
 }
 Write-Host "========================================" -ForegroundColor Yellow
 Write-Host ""
 
 if ($SettingsOnly) {
-    Write-Host "SIMDI yapmaniz gerekenler:" -ForegroundColor White
+    Write-Host "What to do NOW:" -ForegroundColor White
     Write-Host ""
-    Write-Host "1. Programi/Uygulamayi ACIN" -ForegroundColor Cyan
-    Write-Host "2. Istediginiz ayarlari DEGISTIRIN" -ForegroundColor Cyan
-    Write-Host "3. Ayarlari KAYDEDIN (onemli!)" -ForegroundColor Yellow
-    Write-Host "4. Programi ACIK birakin" -ForegroundColor Cyan
+    Write-Host "1. OPEN the program/application" -ForegroundColor Cyan
+    Write-Host "2. CHANGE desired settings" -ForegroundColor Cyan
+    Write-Host "3. SAVE settings (important!)" -ForegroundColor Yellow
+    Write-Host "4. Keep program OPEN" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "Ornek: Edge'de arama motorunu Google yapin" -ForegroundColor Gray
-    Write-Host "Ornek: Discord'da tema degistirin" -ForegroundColor Gray
-    Write-Host "Ornek: Windows'ta dark mode acin" -ForegroundColor Gray
+    Write-Host "Example: Set Google as search engine in Edge" -ForegroundColor Gray
+    Write-Host "Example: Change theme in Discord" -ForegroundColor Gray
+    Write-Host "Example: Enable dark mode in Windows" -ForegroundColor Gray
 } else {
-    Write-Host "SIMDI yapmaniz gerekenler:" -ForegroundColor White
+    Write-Host "What to do NOW:" -ForegroundColor White
     Write-Host ""
-    Write-Host "1. Programi/Oyunu kurmaya BASLAYIN" -ForegroundColor Cyan
-    Write-Host "2. Kurulum TAMAMLANINCA devam edin" -ForegroundColor Cyan
-    Write-Host "3. Program/Oyun ACIK kalabilir" -ForegroundColor Yellow
+    Write-Host "1. START installing the program/game" -ForegroundColor Cyan
+    Write-Host "2. Continue when installation COMPLETES" -ForegroundColor Cyan
+    Write-Host "3. Program/game can stay OPEN" -ForegroundColor Yellow
     Write-Host ""
-    Write-Host "Ornek: Steam, Discord, Notepad++ kurun" -ForegroundColor Gray
-    Write-Host "Ornek: Valorant, Fortnite, CS:GO kurun" -ForegroundColor Gray
+    Write-Host "Example: Install Steam, Discord, Notepad++" -ForegroundColor Gray
+    Write-Host "Example: Install Valorant, Fortnite, CS:GO" -ForegroundColor Gray
 }
 
 Write-Host ""
-Read-Host "[Bekleniyor] Hazir oldugunuzda Enter'a basin"
+Read-Host "[Waiting] Press Enter when ready"
 
-# STEP 3: After snapshot ve farklari bul
+# STEP 3: After snapshot and find differences
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Yellow
-Write-Host "    ADIM 3: DEGISIKLIKLER TESPIT       " -ForegroundColor Yellow
+Write-Host "     STEP 3: DETECTING CHANGES         " -ForegroundColor Yellow
 Write-Host "========================================" -ForegroundColor Yellow
 Write-Host ""
 
@@ -313,36 +313,36 @@ $detectedChanges = @{
 }
 
 # Registry After Snapshot
-Write-Host "[i] Registry degisiklikleri tespit ediliyor..." -ForegroundColor Cyan
+Write-Host "[i] Detecting registry changes..." -ForegroundColor Cyan
 $afterSnapshot = @{
     Registry = Get-RegistrySnapshot -Paths $registryPathsToMonitor
 }
 
-# Registry degisikliklerini karsilastir
+# Compare registry changes
 $registryChanges = Compare-RegistrySnapshots -Before $beforeSnapshot.Registry -After $afterSnapshot.Registry
 
 if ($DetailedOutput -and ($registryChanges.Modified.Count -gt 0 -or $registryChanges.Added.Count -gt 0)) {
     Write-Host ""
-    Write-Host "[Registry Degisiklikleri]" -ForegroundColor Yellow
+    Write-Host "[Registry Changes]" -ForegroundColor Yellow
     
     if ($registryChanges.Modified.Count -gt 0) {
-        Write-Host "  Degisen key'ler:" -ForegroundColor White
+        Write-Host "  Modified keys:" -ForegroundColor White
         foreach ($key in $registryChanges.Modified.Keys) {
             $shortKey = $key -replace "HKEY_CURRENT_USER", "HKCU" -replace "HKEY_LOCAL_MACHINE", "HKLM"
             Write-Host "    $shortKey" -ForegroundColor Gray
             foreach ($valueName in $registryChanges.Modified[$key].Values.Keys) {
                 $value = $registryChanges.Modified[$key].Values[$valueName]
                 if ($value -is [hashtable] -and $value.ContainsKey("Old")) {
-                    Write-Host "      [$valueName] degisti" -ForegroundColor Green
+                    Write-Host "      [$valueName] changed" -ForegroundColor Green
                 } else {
-                    Write-Host "      [$valueName] eklendi" -ForegroundColor Green
+                    Write-Host "      [$valueName] added" -ForegroundColor Green
                 }
             }
         }
     }
     
     if ($registryChanges.Added.Count -gt 0) {
-        Write-Host "  Yeni key'ler:" -ForegroundColor White
+        Write-Host "  New keys:" -ForegroundColor White
         foreach ($key in $registryChanges.Added.Keys) {
             $shortKey = $key -replace "HKEY_CURRENT_USER", "HKCU" -replace "HKEY_LOCAL_MACHINE", "HKLM"
             Write-Host "    $shortKey" -ForegroundColor Green
@@ -350,25 +350,25 @@ if ($DetailedOutput -and ($registryChanges.Modified.Count -gt 0 -or $registryCha
     }
 }
 
-# Klasor degisikliklerini bul
-Write-Host "[i] C: surucusu taraniyor (Temp/Cache klasorleri filtreleniyor)..." -ForegroundColor Cyan
+# Find folder changes
+Write-Host "[i] Scanning C: drive (filtering Temp/Cache folders)..." -ForegroundColor Cyan
 $i = 0
 foreach ($scan in $scanPaths) {
     if (Test-Path $scan.Path) {
         $i++
-        Show-Progress -Activity "Tarama" -PercentComplete ([int]($i * 100 / $scanPaths.Count)) -Status $scan.Label
+        Show-Progress -Activity "Scanning" -PercentComplete ([int]($i * 100 / $scanPaths.Count)) -Status $scan.Label
         
         $afterFiles = Get-ChildItem $scan.Path -Directory -ErrorAction SilentlyContinue | 
                      Select-Object Name, CreationTime, LastWriteTime
         
-        # Yeni klasorleri bul
+        # Find new folders
         $newFolders = @()
         foreach ($folder in $afterFiles) {
             $existed = $false
             foreach ($old in $beforeSnapshot.Files[$scan.Label]) {
                 if ($old.Name -eq $folder.Name) {
                     $existed = $true
-                    # Degismis mi kontrol et
+                    # Check if modified
                     if ($folder.LastWriteTime -gt $old.LastWriteTime) {
                         $newFolders += $folder
                     }
@@ -383,10 +383,10 @@ foreach ($scan in $scanPaths) {
         foreach ($folder in $newFolders) {
             $fullPath = Join-Path $scan.Path $folder.Name
             
-            # Ignore pattern kontrolu - Temp/Cache/Logs otomatik filtrele
+            # Ignore pattern check - Auto filter Temp/Cache/Logs
             $isIgnored = $false
             
-            # Temp, Cache, Logs klasorlerini otomatik filtrele
+            # Auto filter Temp, Cache, Logs folders
             $autoIgnoreFolders = @("Temp", "Cache", "Caches", "Logs", "Tmp", "temp", "cache", "logs", "tmp", 
                                   "CachedData", "CachedFiles", "TempFiles", "TemporaryFiles", 
                                   "CrashDumps", "CrashReports", "DiagnosticReports")
@@ -394,11 +394,11 @@ foreach ($scan in $scanPaths) {
             if ($folder.Name -in $autoIgnoreFolders) {
                 $isIgnored = $true
                 if ($DetailedOutput) {
-                    Write-Host "  [-] Ignore: $($folder.Name) (Temp/Cache klasoru)" -ForegroundColor DarkGray
+                    Write-Host "  [-] Ignore: $($folder.Name) (Temp/Cache folder)" -ForegroundColor DarkGray
                 }
             }
             
-            # Pattern database'den ignore pattern kontrolu
+            # Check ignore patterns from pattern database
             if (-not $isIgnored) {
                 foreach ($ignorePattern in $patterns.common.ignore_patterns) {
                     if ($folder.Name -match $ignorePattern.Replace("*", ".*").Replace("/", "\\")) {
@@ -412,7 +412,7 @@ foreach ($scan in $scanPaths) {
             }
             
             if (-not $isIgnored) {
-                # SettingsOnly modda sadece config/settings klasorlerine bak
+                # In SettingsOnly mode, only look for config/settings folders
                 if ($SettingsOnly) {
                     $isSettings = $false
                     foreach ($pattern in $patterns.common.critical_patterns) {
@@ -433,7 +433,7 @@ foreach ($scan in $scanPaths) {
                         }
                     }
                 } else {
-                    # Normal modda tum degisiklikleri al
+                    # In normal mode, capture all changes
                     if ($DetailedOutput) {
                         Write-Host "[+] $fullPath" -ForegroundColor Green
                     }
@@ -451,25 +451,25 @@ foreach ($scan in $scanPaths) {
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "       TESPIT EDILEN DEGISIKLIKLER     " -ForegroundColor Cyan
+Write-Host "          DETECTED CHANGES              " -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Klasorler: $($detectedChanges.Folders.Count) adet" -ForegroundColor White
+Write-Host "Folders: $($detectedChanges.Folders.Count) items" -ForegroundColor White
 
 if ($DetailedOutput -and $detectedChanges.Folders.Count -gt 0) {
     Write-Host ""
-    Write-Host "Detay:" -ForegroundColor Gray
+    Write-Host "Details:" -ForegroundColor Gray
     foreach ($folder in $detectedChanges.Folders[0..([Math]::Min(10, $detectedChanges.Folders.Count-1))]) {
         Write-Host "  - $($folder.Label)\$($folder.Name)" -ForegroundColor Gray
     }
     if ($detectedChanges.Folders.Count -gt 10) {
-        Write-Host "  ... ve $($detectedChanges.Folders.Count - 10) diger klasor" -ForegroundColor Gray
+        Write-Host "  ... and $($detectedChanges.Folders.Count - 10) more folders" -ForegroundColor Gray
     }
 }
 
-# Claude AI analizi su an icin bos, registry export'tan sonra yapilacak
+# Claude AI analysis will be done after registry export
 
-# STEP 4: Type detection (launcher yerine)
+# STEP 4: Type detection (instead of launcher)
 $detectedType = "Generic"
 if ($SettingsOnly) {
     $detectedType = "Settings"
@@ -479,9 +479,9 @@ if ($SettingsOnly) {
     $detectedType = "Game"
 }
 
-# STEP 5: Dosyalari kopyala ve config olustur
+# STEP 5: Copy files and create config
 Write-Host ""
-Write-Host "[4/6] Dosyalar paketleniyor..." -ForegroundColor Green
+Write-Host "[4/6] Packaging files..." -ForegroundColor Green
 
 $config = @{
     name = $Name
@@ -497,20 +497,20 @@ $config = @{
     }
 }
 
-# Dosyalari kopyala - Environment variable'li klasor isimleri kullan
+# Copy files - Using environment variable folder names
 foreach ($change in $detectedChanges.Folders) {
-    # Klasor adini environment variable formatinda sakla
+    # Store folder name in environment variable format
     $envFolder = "%$($change.Label)%"
     $targetFolder = "$outputPath\Files\$envFolder\$($change.Name)"
     
-    Write-Host "  Kopyalaniyor: $($change.Name)" -ForegroundColor Gray
+    Write-Host "  Copying: $($change.Name)" -ForegroundColor Gray
     
-    # Klasoru kopyala
+    # Copy folder
     if (-not (Test-Path (Split-Path $targetFolder -Parent))) {
         New-Item -Path (Split-Path $targetFolder -Parent) -ItemType Directory -Force | Out-Null
     }
     
-    # Robocopy ile kopyala - Genisletilmis exclude listesi
+    # Copy with robocopy - Extended exclude list
     $excludeDirs = @("temp", "cache", "logs", "tmp", "Temp", "Cache", "Logs", "Tmp",
                      "CachedData", "CachedFiles", "TempFiles", "TemporaryFiles",
                      "CrashDumps", "CrashReports", "DiagnosticReports")
@@ -542,7 +542,7 @@ foreach ($change in $detectedChanges.Folders) {
     
     & robocopy $robocopyArgs | Out-Null
     
-    # Config'e environment variable'li path ekle
+    # Add environment variable path to config
     $config.folders += @{
         source = "$envFolder\$($change.Name)"
         target = "$envFolder\$($change.Name)"
@@ -551,11 +551,11 @@ foreach ($change in $detectedChanges.Folders) {
     }
 }
 
-Write-Host "[OK] Dosyalar kopyalandi" -ForegroundColor Green
+Write-Host "[OK] Files copied" -ForegroundColor Green
 
-# STEP 6: Registry export - SADECE DEGISEN KEY'LER
+# STEP 6: Registry export - ONLY CHANGED KEYS
 Write-Host ""
-Write-Host "[5/6] Registry export ediliyor (sadece degisen key'ler)..." -ForegroundColor Green
+Write-Host "[5/6] Exporting registry (only changed keys)..." -ForegroundColor Green
 
 $registryContent = "Windows Registry Editor Version 5.00`r`n`r`n"
 $registryContent += "; GameSet - $Name Registry Export (Optimized)`r`n"
@@ -568,7 +568,7 @@ $registryContent += "; Only changed keys exported`r`n`r`n"
 $exportedKeys = @()
 $exportedCount = 0
 
-# Degisen registry key'leri export et
+# Export changed registry keys
 if ($registryChanges.Modified.Count -gt 0 -or $registryChanges.Added.Count -gt 0) {
     
     # Modified keys
@@ -577,7 +577,7 @@ if ($registryChanges.Modified.Count -gt 0 -or $registryChanges.Added.Count -gt 0
         $cleanKey = $cleanKey -replace "HKEY_CURRENT_USER", "HKEY_CURRENT_USER" -replace "HKCU", "HKEY_CURRENT_USER"
         $cleanKey = $cleanKey -replace "HKEY_LOCAL_MACHINE", "HKEY_LOCAL_MACHINE" -replace "HKLM", "HKEY_LOCAL_MACHINE"
         
-        Write-Host "  Export: $($key -replace 'HKEY_CURRENT_USER', 'HKCU') (degisen)" -ForegroundColor Gray
+        Write-Host "  Export: $($key -replace 'HKEY_CURRENT_USER', 'HKCU') (modified)" -ForegroundColor Gray
         
         # Key header
         $registryContent += "[$cleanKey]`r`n"
@@ -626,7 +626,7 @@ if ($registryChanges.Modified.Count -gt 0 -or $registryChanges.Added.Count -gt 0
         $cleanKey = $cleanKey -replace "HKEY_CURRENT_USER", "HKEY_CURRENT_USER" -replace "HKCU", "HKEY_CURRENT_USER"
         $cleanKey = $cleanKey -replace "HKEY_LOCAL_MACHINE", "HKEY_LOCAL_MACHINE" -replace "HKLM", "HKEY_LOCAL_MACHINE"
         
-        Write-Host "  Export: $($key -replace 'HKEY_CURRENT_USER', 'HKCU') (yeni)" -ForegroundColor Gray
+        Write-Host "  Export: $($key -replace 'HKEY_CURRENT_USER', 'HKCU') (new)" -ForegroundColor Gray
         
         # Export the entire new key
         $tempFile = [System.IO.Path]::GetTempFileName()
@@ -646,9 +646,9 @@ if ($registryChanges.Modified.Count -gt 0 -or $registryChanges.Added.Count -gt 0
         $exportedCount++
     }
     
-    Write-Host "  [OK] $exportedCount degisen/yeni key export edildi" -ForegroundColor Green
+    Write-Host "  [OK] $exportedCount modified/new keys exported" -ForegroundColor Green
 } else {
-    Write-Host "  [INFO] Registry degisikligi tespit edilmedi" -ForegroundColor Yellow
+    Write-Host "  [INFO] No registry changes detected" -ForegroundColor Yellow
 }
 
 # Store in detected changes for later analysis
@@ -656,17 +656,17 @@ $detectedChanges.Registry = $registryChanges
 
 $config.registry.keys = $exportedKeys
 
-# Registry dosyasini kaydet
+# Save registry file
 $registryContent | Out-File "$outputPath\registry.reg" -Encoding UTF8
 
-Write-Host "[OK] $($exportedKeys.Count) registry key export edildi" -ForegroundColor Green
+Write-Host "[OK] $($exportedKeys.Count) registry keys exported" -ForegroundColor Green
 
-# CLAUDE AI ANALIZI - Gereksiz dosyalari ve registry'leri filtrele
+# CLAUDE AI ANALYSIS - Filter unnecessary files and registry entries
 if ($detectedChanges.Folders.Count -gt 0 -or $exportedKeys.Count -gt 0) {
     Write-Host ""
-    Write-Host "[AI] Claude AI ile akilli filtreleme baslatiliyor..." -ForegroundColor Magenta
+    Write-Host "[AI] Starting intelligent filtering with Claude AI..." -ForegroundColor Magenta
     
-    # Claude Analyzer modulu cagir
+    # Call Claude Analyzer module
     $analyzerPath = "$PSScriptRoot\GS_Core_ClaudeAnalyzer.ps1"
     if (Test-Path $analyzerPath) {
         try {
@@ -690,7 +690,7 @@ if ($detectedChanges.Folders.Count -gt 0 -or $exportedKeys.Count -gt 0) {
                 }
             }
             
-            # Claude analizini calistir
+            # Run Claude analysis
             $aiResult = & $analyzerPath `
                 -DetectedChanges $detectedChanges.Folders `
                 -RegistryChanges $registryChangesList `
@@ -700,14 +700,14 @@ if ($detectedChanges.Folders.Count -gt 0 -or $exportedKeys.Count -gt 0) {
             
             if ($aiResult -and $aiResult.FilteredChanges) {
                 Write-Host ""
-                Write-Host "[AI] Filtreleme sonucu:" -ForegroundColor Green
-                Write-Host "  - Klasor: Onceki $($aiResult.OriginalCount) -> Sonraki $($aiResult.FilteredCount)" -ForegroundColor White
+                Write-Host "[AI] Filtering result:" -ForegroundColor Green
+                Write-Host "  - Folders: Before $($aiResult.OriginalCount) -> After $($aiResult.FilteredCount)" -ForegroundColor White
                 if ($exportedKeys.Count -gt 0) {
-                    Write-Host "  - Registry: $($exportedKeys.Count) key analiz edildi" -ForegroundColor White
+                    Write-Host "  - Registry: $($exportedKeys.Count) keys analyzed" -ForegroundColor White
                 }
-                Write-Host "  - Filtrelenen: $($aiResult.ExcludedCount) gereksiz item" -ForegroundColor Yellow
+                Write-Host "  - Filtered: $($aiResult.ExcludedCount) unnecessary items" -ForegroundColor Yellow
                 
-                # Filtrelenmis listeyi kullan
+                # Use filtered list
                 if ($aiResult.FilteredChanges) {
                     $detectedChanges.Folders = $aiResult.FilteredChanges
                 }
@@ -718,31 +718,31 @@ if ($detectedChanges.Folders.Count -gt 0 -or $exportedKeys.Count -gt 0) {
                 }
             }
         } catch {
-            Write-Host "[UYARI] Claude AI analizi basarisiz, tum degisiklikler korunuyor" -ForegroundColor Yellow
-            Write-Host "  Hata: $_" -ForegroundColor Gray
+            Write-Host "[WARNING] Claude AI analysis failed, keeping all changes" -ForegroundColor Yellow
+            Write-Host "  Error: $_" -ForegroundColor Gray
         }
     } else {
-        Write-Host "[UYARI] Claude Analyzer modulu bulunamadi, filtreleme atlanıyor" -ForegroundColor Yellow
+        Write-Host "[WARNING] Claude Analyzer module not found, skipping filtering" -ForegroundColor Yellow
     }
 }
 
-# Config dosyasini kaydet
+# Save config file
 $config | ConvertTo-Json -Depth 10 | Out-File "$outputPath\config.json" -Encoding UTF8
 
-# STEP 7: Ozet rapor
+# STEP 7: Summary report
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Cyan
-Write-Host "         PAKETLEME TAMAMLANDI          " -ForegroundColor Cyan
+Write-Host "         PACKAGING COMPLETED            " -ForegroundColor Cyan
 Write-Host "========================================" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "Paket: $Name" -ForegroundColor White
-Write-Host "Tip: $detectedType" -ForegroundColor White
-Write-Host "Konum: $outputPath" -ForegroundColor White
-Write-Host "Klasorler: $($config.folders.Count)" -ForegroundColor White
+Write-Host "Package: $Name" -ForegroundColor White
+Write-Host "Type: $detectedType" -ForegroundColor White
+Write-Host "Location: $outputPath" -ForegroundColor White
+Write-Host "Folders: $($config.folders.Count)" -ForegroundColor White
 Write-Host "Registry: $($config.registry.keys.Count) key" -ForegroundColor White
 Write-Host ""
 
-# Anti-cheat servisleri kontrol
+# Check for anti-cheat services
 $afterServices = Get-Service | Select-Object Name, Status, StartType
 $newServices = @()
 
@@ -756,19 +756,19 @@ foreach ($service in $afterServices) {
     }
     if (-not $existed) {
         $newServices += $service
-        Write-Host "[SERVIS] Yeni servis tespit edildi: $($service.Name)" -ForegroundColor Yellow
+        Write-Host "[SERVICE] New service detected: $($service.Name)" -ForegroundColor Yellow
     }
 }
 
 if ($newServices.Count -gt 0) {
-    Write-Host "Servisler: $($newServices.Count) adet" -ForegroundColor Yellow
+    Write-Host "Services: $($newServices.Count) items" -ForegroundColor Yellow
 }
 
 Write-Host ""
 Write-Host "========================================" -ForegroundColor Yellow
-Write-Host "           SIRADAKI ADIMLAR            " -ForegroundColor Yellow
+Write-Host "             NEXT STEPS                 " -ForegroundColor Yellow
 Write-Host "========================================" -ForegroundColor Yellow
 Write-Host ""
-Write-Host "1. Deploy (opsiyonel):" -ForegroundColor White
+Write-Host "1. Deploy (optional):" -ForegroundColor White
 Write-Host "   GS_Server_DeployToC.bat $setFolderName" -ForegroundColor Gray
 Write-Host ""
