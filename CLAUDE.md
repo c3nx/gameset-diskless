@@ -1,134 +1,134 @@
-# GameSet Advanced - Diskless Gaming Cafe Sistemi v3.0 (Claude AI Edition)
+# GameSet Advanced - Diskless Gaming Cafe System v3.0 (Claude AI Edition)
 
-## Genel Bakış
+## Overview
 
-GameSet Advanced, diskless gaming cafe sistemleri için geliştirilmiş, Claude AI destekli akıllı tespit sistemine sahip merkezi oyun yönetim platformudur. Server'daki E: sürücüsünden tüm client'ların oyunları sorunsuz çalıştırmasını sağlar.
+GameSet Advanced is a centralized game management platform for diskless gaming cafe systems, featuring Claude AI-powered intelligent detection. It enables all clients to run games seamlessly from the server's E: drive.
 
-## Yenilikler (v3.0 - Claude AI Edition)
+## New Features (v3.0 - Claude AI Edition)
 
-### v3.0 Özellikleri
-- **Claude AI Entegrasyonu**: Akıllı değişiklik filtreleme ve analiz
-- **Otomatik Temp/Cache Filtreleme**: Gereksiz dosyalar otomatik elenir
-- **C: Sürücü Odaklı Tarama**: Sadece sistem sürücüsü taranır
-- **Verbose AI Analizi**: Claude'un düşünce sürecini görebilme
-- **Gelişmiş Pattern Tanıma**: AI destekli özel program analizi
-- **Confidence Scoring**: AI güven skoruna göre filtreleme
+### v3.0 Features
+- **Claude AI Integration**: Smart change filtering and analysis
+- **Automatic Temp/Cache Filtering**: Unnecessary files automatically excluded
+- **C: Drive Focused Scanning**: Only system drive is scanned
+- **Verbose AI Analysis**: View Claude's thought process
+- **Advanced Pattern Recognition**: AI-powered custom program analysis
+- **Confidence Scoring**: Filtering based on AI confidence scores
 
-### v2.0 Özellikleri
-- **Pattern-Based Detection**: Hızlı ve güvenilir pattern database
-- **Client-Based Detection**: Ekran kartı olmayan server sorunu çözüldü  
-- **Portable GameSet Paketleri**: Her oyun kendi Set klasöründe
-- **Deploy-Once Mekanizması**: Server C:'ye tek seferlik deploy
-- **PowerShell Bypass**: ExecutionPolicy sorunları otomatik çözülür
-- **Symlink Manager**: Akıllı symlink yönetimi ve onarım modülü
+### v2.0 Features
+- **Pattern-Based Detection**: Fast and reliable pattern database
+- **Client-Based Detection**: Solved server without graphics card issue
+- **Portable GameSet Packages**: Each game in its own Set folder
+- **Deploy-Once Mechanism**: One-time deployment to server C:
+- **PowerShell Bypass**: ExecutionPolicy issues automatically resolved
+- **Symlink Manager**: Smart symlink management and repair module
 
-## Sistem Mimarisi
+## System Architecture
 
 ```
-Server (E: Sürücüsü)
-├── E:\GameSet\                    (Merkezi yönetim)
-│   ├── ValorantSet\              (Portable oyun paketi)
-│   │   ├── config.json           (Oyun konfigürasyonu)
-│   │   ├── registry.reg          (Registry kayıtları)
+Server (E: Drive)
+├── E:\GameSet\                    (Central management)
+│   ├── ValorantSet\              (Portable game package)
+│   │   ├── config.json           (Game configuration)
+│   │   ├── registry.reg          (Registry entries)
 │   │   ├── .deployed_to_server   (Deploy marker)
-│   │   └── Files\                (Oyun dosyaları)
+│   │   └── Files\                (Game files)
 │   │       ├── AppData_Local\
 │   │       ├── AppData_Roaming\
 │   │       └── ProgramData\
-│   ├── FortniteSet\              (Başka bir oyun)
-│   ├── Scripts\                   (PowerShell scriptleri)
+│   ├── FortniteSet\              (Another game)
+│   ├── Scripts\                   (PowerShell scripts)
 │   ├── Data\                      (Pattern database)
 │   │   └── GamePatterns.json
-│   └── Logs\                      (İşlem logları)
-└── E:\JunkFiles\                  (C: sync klasörleri)
+│   └── Logs\                      (Process logs)
+└── E:\JunkFiles\                  (C: sync folders)
     ├── Valorant_AppData_Local\
     ├── Valorant_ProgramData\
     └── ...
 
-Client'lar (Diskless)
-├── C: Sürücüsü → Symlink'ler E:\GameSet\*Set\Files'a
-└── Registry → Her GameSet'in registry.reg dosyasından
+Clients (Diskless)
+├── C: Drive → Symlinks to E:\GameSet\*Set\Files
+└── Registry → From each GameSet's registry.reg file
 ```
 
-## Çalışma Prensibi
+## Working Principle
 
 ### Client-Based Detection → Server Deployment → Client Auto-Loading
 
-1. **Client'ta Tespit**: Oyun client'a kurulur, değişiklikler tespit edilir
-2. **Claude AI Analizi**: Gereksiz dosyalar akıllıca filtrelenir
-3. **GameSet Paketi**: Portable paket oluşturulur (OyunAdiSet formatında)
-4. **Server Deploy**: Paket server C:'ye deploy edilir
-5. **Auto-Loading**: Tüm client'lar restart'ta paketi otomatik yükler
+1. **Client Detection**: Game installed on client, changes detected
+2. **Claude AI Analysis**: Unnecessary files intelligently filtered
+3. **GameSet Package**: Portable package created (GameNameSet format)
+4. **Server Deploy**: Package deployed to server C:
+5. **Auto-Loading**: All clients automatically load package on restart
 
-## Kritik Dosyalar ve İşlevleri
+## Critical Files and Functions
 
 ### Pattern Database: GamePatterns.json
-- **Amaç**: Tüm launcher ve oyun pattern'lerini içeren merkezi veritabanı
-- **İçerik**: Launcher tanımlayıcıları, kritik klasörler, registry key'leri, anti-cheat servisleri
-- **Kullanım**: Offline ve hızlı pattern-based tespit için
+- **Purpose**: Central database containing all launcher and game patterns
+- **Content**: Launcher identifiers, critical folders, registry keys, anti-cheat services
+- **Usage**: For offline and fast pattern-based detection
 
-### Client-Side Detection: GS_Client_DetectNewGame.bat/ps1
-- **Amaç**: Client'ta yeni oyun tespit ve portable GameSet paketi oluşturma
-- **İşlevi**:
-  - Before/after snapshot alır
-  - C: sürücüsünde değişiklikleri tespit eder
-  - Claude AI ile akıllı filtreleme yapar
-  - Portable GameSet paketi oluşturur (ÖrnekSet formatında)
-  - Registry ve dosyaları organize eder
-- **Çalıştırma**: `GS_Client_DetectNewGame.bat`
+### Client-Side Detection: GS_Client_DetectChanges.bat/ps1
+- **Purpose**: Detect new games on client and create portable GameSet packages
+- **Functions**:
+  - Takes before/after snapshots
+  - Detects changes on C: drive
+  - Performs smart filtering with Claude AI
+  - Creates portable GameSet package (ExampleSet format)
+  - Organizes registry and files
+- **Execute**: `GS_Client_DetectChanges.bat`
 
 ### Claude AI Analyzer: GS_Core_ClaudeAnalyzer.ps1
-- **Amaç**: Tespit edilen değişiklikleri akıllıca filtreler
-- **İşlevi**:
-  - Essential dosyaları belirler
-  - Temp/Cache/Logs otomatik filtreler
-  - Program-özel optimizasyon yapar
-  - Confidence score hesaplar
-- **Özellikler**: Verbose mod ile Claude'un düşünce süreci görülebilir
+- **Purpose**: Intelligently filters detected changes
+- **Functions**:
+  - Identifies essential files
+  - Automatically filters Temp/Cache/Logs
+  - Performs program-specific optimization
+  - Calculates confidence scores
+- **Features**: Verbose mode allows viewing Claude's thought process
 
 ### Server Deployment: GS_Server_DeployToC.bat/ps1  
-- **Amaç**: GameSet paketlerini server C: sürücüsüne deploy eder
-- **İşlevi**:
-  - Paketi C:\GameSet'e kopyalar
-  - E:\JunkFiles'a senkronize eder
-  - Deploy marker dosyası oluşturur
-  - UpdateSync'in çalışması için gerekli
-- **Çalıştırma**: `GS_Server_DeployToC.bat ValorantSet`
+- **Purpose**: Deploys GameSet packages to server C: drive
+- **Functions**:
+  - Copies package to C:\GameSet
+  - Synchronizes to E:\JunkFiles
+  - Creates deploy marker file
+  - Required for UpdateSync operation
+- **Execute**: `GS_Server_DeployToC.bat ValorantSet`
 
 ### Client Auto-Loader: GS_Client_AutoLoader.bat/ps1
-- **Amaç**: Client açılışında tüm GameSet paketlerini otomatik yükler
-- **İşlevi**:
-  - E:\GameSet'teki tüm *Set klasörlerini tarar
-  - Her paket için registry import eder
-  - Symlink'leri oluşturur
-- **Çalıştırma**: Gizmo startup'a `GS_Client_AutoLoader.bat` ekleyin
+- **Purpose**: Automatically loads all GameSet packages on client startup
+- **Functions**:
+  - Scans all *Set folders in E:\GameSet
+  - Imports registry for each package
+  - Creates symlinks
+- **Execute**: Add `GS_Client_AutoLoader.bat` to Gizmo startup
 
 ### Update Synchronization: GS_Server_UpdateSync.bat/ps1
-- **Amaç**: Deploy edilmiş oyunların güncellemelerini yakalar
-- **İşlevi**:
-  - Sadece deploy edilmiş oyunları günceller
-  - C: → E:\JunkFiles senkronizasyonu
-  - Multi-thread robocopy kullanır
-- **Çalıştırma**: Update sonrası `GS_Server_UpdateSync.bat`
+- **Purpose**: Captures updates for deployed games
+- **Functions**:
+  - Updates only deployed games
+  - C: → E:\JunkFiles synchronization
+  - Uses multi-thread robocopy
+- **Execute**: After updates `GS_Server_UpdateSync.bat`
 
 
 ### Core Modules
-- **GS_Core_SmartDetector.ps1**: Pattern-based tespit motoru
-- **GS_Core_SymlinkManager.ps1**: Symlink oluşturma ve onarım
-- **GS_Core_ClaudeAnalyzer.ps1**: Claude AI filtreleme ve analiz modülü
-- **GS_Core_Config.ps1**: Merkezi konfigürasyon yönetimi
+- **GS_Core_SmartDetector.ps1**: Pattern-based detection engine
+- **GS_Core_SymlinkManager.ps1**: Symlink creation and repair
+- **GS_Core_ClaudeAnalyzer.ps1**: Claude AI filtering and analysis module
+- **GS_Core_Config.ps1**: Central configuration management
 - **GS_RunPowerShell.bat**: ExecutionPolicy bypass helper
 
-## Yeni Oyun/Ayar Ekleme Süreci (Claude AI Destekli)
+## New Game/Settings Addition Process (Claude AI Supported)
 
-### Mod Seçenekleri
-1. **Yeni Program/Oyun Kurulumu**: Tam tespit modu
-2. **Ayar Değişikliği**: Sadece config dosyaları (Edge, Discord vb.)
-3. **Windows Ayarı**: Sistem ayar değişiklikleri
+### Mode Options
+1. **New Program/Game Installation**: Full detection mode
+2. **Settings Change**: Config files only (Edge, Discord etc.)
+3. **Windows Setting**: System setting changes
 
-### Adım 1: Client'ta Tespit Başlat
+### Step 1: Start Detection on Client
 ```batch
-GS_Client_DetectNewGame.bat
+GS_Client_DetectChanges.bat
 ```
 
 ### Adım 2: Mod Seçimi
